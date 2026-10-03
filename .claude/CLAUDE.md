@@ -24,6 +24,15 @@ claude --plugin-dir .               # try it in a session (hot-reloads saved edi
 - Never change the plugin `name` (`workface`): installs, the store and the tool name (`mcp__workface__workface`)
   are keyed by it. Change `displayName` instead.
 
+## Artwork
+
+The GitHub social preview (assets/social.png, 1280x640) and the plugin icon (.claude-plugin/icon.png, 512x512)
+are screenshots of assets/social.svg and assets/icon.svg, taken with Playwright's headless Chromium:
+chrome-headless-shell with --headless --no-sandbox --disable-gpu --hide-scrollbars, --window-size set to the
+image size, --screenshot set to the PNG path, and the SVG's absolute file:// URL. The directory takes the icon
+only on a plugin's first save in its developer portal; changing it later does not change the listing. Never
+write an image path in backticks or a code block in a committed text file: the directory holds the plugin.
+
 ## Key Files
 
 - `hooks/register.tsx` — every hook: compaction, flush nudge, SessionStart, `/workface`, the tool, the panel.

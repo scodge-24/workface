@@ -12,7 +12,7 @@ for the shape.
 
 | Rule | Loaded When |
 | ---- | ----------- |
-| [mods.md](mods.md) | `hooks/**`, `tests/**`, `types/**` — validate/test before committing; `$` helpers top-level; post-compaction context goes in `session.compact` messages; test-kit mocking |
+| [mods.md](mods.md) | the hooks module and helpers, `tests/**`, the types contract — validate/test before committing; `$` helpers top-level; no `h` as a name; no globs over `hooks/`; post-compaction context goes in `session.compact` messages; test-kit mocking |
 
 ## Adding a Rule
 

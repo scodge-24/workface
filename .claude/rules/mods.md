@@ -1,8 +1,10 @@
 ---
 paths:
-  - 'hooks/**'
+  - 'hooks/hooks.json'
+  - 'hooks/register.tsx'
+  - 'hooks/workface.ts'
   - 'tests/**'
-  - 'types/**'
+  - 'types/index.d.ts'
 ---
 
 # Claude Code mods
@@ -15,6 +17,10 @@ paths:
   `claude plugin validate --strict .` and `claude plugin test .` before committing.
 - A helper that takes `$` must be a top-level function declaration in the hooks module, or validate
   refuses it.
+- Never use `h` or `Fragment` as a name of your own in a `.tsx` file, not even an arrow parameter: JSX compiles
+  to calls of them. Local validate passes it; the directory portal blocks it (`MOD_CAPABILITY_USE_NOT_PLAIN`).
+- Name files under `hooks/` one by one in anything committed, never with a wildcard: the portal holds a
+  plugin whose text names a mod folder by a glob (`COMMAND_NAMES_MOD_FILE`).
 - `prompt.context` blocks are served from cache after a mid-turn compaction, even after
   `$.ui.invalidate('prompt.context')`. Put post-compaction context in the `session.compact` result's
   `messages`.

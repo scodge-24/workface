@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <metadata>Source of the plugin icon (.claude-plugin/icon.png, 512x512); .claude/CLAUDE.md says how it is rendered.</metadata>
+  <defs>
+    <radialGradient id="glow" cx="0.8" cy="0.15" r="0.9">
+      <stop offset="0" stop-color="#d97757" stop-opacity="0.28"/>
+      <stop offset="0.6" stop-color="#d97757" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#d97757" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c9ced6"/>
+    </linearGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.2" fill="#ffffff" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+  <rect width="512" height="512" fill="#0f1115"/>
+  <rect width="512" height="512" fill="url(#dots)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <text x="226" y="352" text-anchor="middle" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="340" font-weight="800" letter-spacing="-8" fill="url(#word)">w</text>
+  <rect x="364" y="318" width="96" height="34" rx="4" fill="#d97757"/>
+</svg>

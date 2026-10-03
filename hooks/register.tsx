@@ -637,7 +637,7 @@ export const register: Register = (on, options) => {
               dimColor={isOmitted}
               onPress={() =>
                 void update($, expanded, now =>
-                  now.includes(section.heading) ? now.filter(h => h !== section.heading) : [...now, section.heading],
+                  now.includes(section.heading) ? now.filter(heading => heading !== section.heading) : [...now, section.heading],
                 )
               }
             />

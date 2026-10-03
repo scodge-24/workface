@@ -2,7 +2,8 @@
   <metadata>
     Source of assets/social.png (the GitHub social preview). Re-export after editing, from the repo root, with
     Playwright's headless Chromium (a double hyphen is not allowed in an XML comment, hence this element):
-    chrome-headless-shell --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1280,640 --screenshot=assets/social.png file://$PWD/assets/social.svg
+    chrome-headless-shell, headless, no sandbox, no GPU, scrollbars hidden, window 1280x640, screenshot to
+    assets/social.png, given this file's absolute file:// URL. The full command is in .claude/CLAUDE.md.
   </metadata>
   <defs>
     <style>

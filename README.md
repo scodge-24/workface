@@ -142,13 +142,28 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 
 ## Data and files
 
-Everything stays on your machine. The mod reads and writes files under `~/.claude/workface/`, reads
-`~/.claude/sessions/` to show which sessions are running, runs `git log` in the session's repo and the repos a
-workface names, and keeps omissions and owner-note records in its plugin store. It makes no network requests.
-Run `claude plugin validate` on a checkout to list every call it makes.
+Everything stays on your machine: the mod makes no network requests and sends nothing anywhere. It changes no
+settings or permissions and never alters or decides a tool call. Run `claude plugin validate` on a checkout to
+list every call it makes.
 
-A workface is plain Markdown, and each session marker under `~/.claude/workface/sessions/<session-id>` is one
-line holding the workface's path, so other tools and agents can read and keep the same tranche.
+- **Files it writes**, all under `~/.claude/workface/`: a tranche's `workface.md` (the skeleton on
+  `/workface start`, your owner notes, `log` lines) and one session marker per attached session at
+  `~/.claude/workface/sessions/<session-id>`.
+- **Files it reads**: the workfaces and markers under `~/.claude/workface/`, and `~/.claude/sessions/` to show
+  in `Browse` which sessions are running.
+- **Programs it runs**, each with fixed arguments: `date '+%Y-%m-%d %H:%M'` for the local time on log lines and
+  owner notes; `git -C <repo> log -n 50 --format=%ct` for the commits-since count, in the session's repo and the
+  repos a workface names; `rm -f <marker>` to delete this session's marker on `/workface detach`.
+- **What it adds to the conversation**: the workface right after each compaction summary and at startup or
+  resume, labelled as automated context; a brief to the summarizer at compaction; one reminder to update the
+  workface at 80% of the auto-compact threshold; and a line you asked about with `?`, added once to your next
+  prompt. It reads your prompts only to attach that ask, and watches the agent's Edit, Write and Bash calls only
+  to redraw the panel after them.
+- **What it keeps in its plugin store**: the lines you omitted, the lines you wrote, and whether the panel
+  opens on its own.
+
+A workface is plain Markdown, and each session marker is one line holding the workface's path, so other tools
+and agents can read and keep the same tranche.
 
 ## Make it yours
 

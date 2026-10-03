@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, PluginOptions, Register } from 'claude-code'
 
 import type { Tone } from './workface'
-import { OWNER_MARK, addOwnerNote, isItem, markOwner, namedPaths, parse, spans, withoutOmitted } from './workface'
+import { OWNER_MARK, addOwnerNote, appendLog, isItem, markOwner, namedPaths, parse, spans, withoutOmitted } from './workface'
 
 // Share of the auto-compact threshold at which the agent is asked to flush the workface.
 const NUDGE_AT = 0.8
@@ -145,8 +145,10 @@ const PROTOCOL = [
   'Workface protocol. The workface is an index, not a record: links first, then what is true now.',
   '- Update it in the same turn as every state change: a commit, push or merge; an agent or workflow launched,',
   '  returned or died; a review verdict; an owner decision; a parked finding; a measurement; a new next step.',
-  '- Rewrite live state in place; never append a block that supersedes another. Log one line per event:',
-  '  `- YYYY-MM-DD HH:MM — <what, with shas/ids> → <consequence>`. Mark PREDICTED, NOT pushed, unverified.',
+  '- Rewrite live state in place; never append a block that supersedes another. Log one line per event with the',
+  '  workface tool\'s `log` action, which stamps the time: entry `<what, with shas/ids> → <consequence>` becomes',
+  '  `- YYYY-MM-DD HH:MM — <entry>`. Mark PREDICTED, NOT pushed, unverified. Never write a time from memory:',
+  '  any other time (an "as of" heading) comes from `date`.',
   '- Where the repo tracks work in an issue tracker, the tracker owns the work state; name its query, do not copy it.',
   '- Budget 120 lines of at most 200 chars. Over it: collapse finished work to one line each, move old log lines',
   '  to log.md beside it, promote lasting lessons to the brief, .claude/rules/ or memory.',
@@ -181,7 +183,7 @@ const skeleton = (tranche: string, now: string) =>
   ].join('\n')
 
 const USAGE =
-  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | detach. ' +
+  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | log <entry> | detach. ' +
   'Workfaces live at ~/.claude/workface/<tranche>/workface.md.'
 
 type Outcome = { text: string; isError?: true }
@@ -193,10 +195,12 @@ async function localNow($: EngineInterface) {
 }
 
 // The verbs the /workface command and the model's tool share; the marker files are the Codex skill's own.
-async function act($: EngineInterface, verb: string, tranche: string): Promise<Outcome> {
+// `arg` is the tranche for start and attach, the entry for log.
+async function act($: EngineInterface, verb: string, arg: string): Promise<Outcome> {
   const root = `${await $.env.get('HOME')}/.claude/workface`
   const marker = `${root}/sessions/${await $.session.id()}`
   if (verb === 'start' || verb === 'attach') {
+    const tranche = arg
     if (!TRANCHE.test(tranche)) return { text: `Name the tranche: letters, digits, '.', '_' or '-'. ${USAGE}`, isError: true }
     const path = `${root}/${tranche}/workface.md`
     const exists = await $.fs.exists(path)
@@ -217,6 +221,18 @@ async function act($: EngineInterface, verb: string, tranche: string): Promise<O
 
     return wf ? { text: await messageFor($, wf, 'on resume') } : { text: `No workface is attached. ${USAGE}` }
   }
+  if (verb === 'log') {
+    const wf = await attached($)
+    if (!wf) return { text: `No workface is attached. ${USAGE}`, isError: true }
+    // The time is the mod's to stamp; drop one the caller wrote anyway.
+    const entry = arg.replace(/\s+/g, ' ').trim().replace(/^-?\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}\s*—\s*/, '')
+    if (entry === '') return { text: 'Give the log entry: <what, with shas/ids> → <consequence>.', isError: true }
+    const line = `- ${await localNow($)} — ${entry}`
+    await $.fs.write(wf.path, appendLog(await $.fs.read(wf.path), line))
+    await refresh($)
+
+    return { text: `Logged in ${wf.path}: ${line}` }
+  }
   if (verb === 'detach') {
     const wf = await attached($)
     if (!wf) return { text: 'No workface is attached to this session.' }
@@ -233,7 +249,7 @@ async function act($: EngineInterface, verb: string, tranche: string): Promise<O
 const flushNudge = (path: string, share: number) =>
   '[workface mod: automated reminder, not a message from the owner.] ' +
   `Context is at ${share}% of the auto-compact threshold. Before it compacts, bring the workface at ${path} up to date: ` +
-  'rewrite live state in place, one log line per state change since its last write, unverified items marked. ' +
+  'rewrite live state in place, one `log` action per state change since its last write, unverified items marked. ' +
   'The workface is re-attached after compaction; what is in neither it, the repo nor the tracker may not survive the summary.'
 
 // The panel's colours: the user's `color_*` options (plugin.json userConfig), each a theme key, a colour name
@@ -360,7 +376,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: COMMAND,
-      description: 'Workface: open the panel, or start <tranche> | attach <tranche> | resume | detach',
+      description: 'Workface: open the panel, or start <tranche> | attach <tranche> | resume | log <entry> | detach',
     })
     await $.tool.register({
       name: 'workface',
@@ -370,14 +386,16 @@ export const register: Register = (on, options) => {
         'the workface mod carries it through every compaction and on resume. Use it when starting or joining long',
         'multi-agent or multi-session work, or when the owner says "start a tranche", "resume the thread" or "where',
         'were we". Actions: start (a new tranche; writes the skeleton to fill in), attach (join an existing tranche),',
-        'resume (show the attached workface again), detach (stop orchestrating it). Only the main orchestrating',
+        'resume (show the attached workface again), log (append a log line stamped with the current local time;',
+        'pass entry, without a time), detach (stop orchestrating it). Only the main orchestrating',
         'session calls this, never a subagent: a subagent shares the session id and would re-point its parent.',
       ].join(' '),
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['start', 'attach', 'resume', 'detach'] },
+          action: { type: 'string', enum: ['start', 'attach', 'resume', 'log', 'detach'] },
           tranche: { type: 'string', description: 'The tranche name, for start and attach (letters, digits, . _ -)' },
+          entry: { type: 'string', description: 'For log: `<what, with shas/ids> → <consequence>`; the mod adds the time' },
         },
         required: ['action'],
       },
@@ -450,15 +468,15 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) {
       return { deny: 'Only the main orchestrating session attaches a workface; a subagent shares its session id.' }
     }
-    const input = e.input as { action?: string; tranche?: string }
-    const done = await act($, input.action ?? '', input.tranche ?? '')
+    const input = e.input as { action?: string; tranche?: string; entry?: string }
+    const done = await act($, input.action ?? '', (input.action === 'log' ? input.entry : input.tranche) ?? '')
 
     return done.isError ? { deny: done.text } : { result: done.text }
   })
 
   on('command.run', { command: COMMAND }, async ($, e) => {
-    const [verb = '', tranche = ''] = e.args.trim().split(/\s+/)
-    if (verb !== '' && verb !== 'panel') return { text: (await act($, verb, tranche)).text }
+    const [verb = '', ...rest] = e.args.trim().split(/\s+/)
+    if (verb !== '' && verb !== 'panel') return { text: (await act($, verb, rest.join(' '))).text }
     if ((await $.ui.panes()).some(pane => pane.id === PANE)) {
       await closePanel($)
 
@@ -502,7 +520,7 @@ export const register: Register = (on, options) => {
     const owned = new Set(await storedList($, 'ownerNotes', wf.path))
     const before = new Set(await storedList($, 'snapshot', wf.path))
     // What a line gets beside its gutter, padding and its ask/omit icons; longer lines are cut and can be opened.
-    const room = e.props.bodyColumns - 10
+    const room = e.props.bodyColumns - 11
     const lines = wf.text.trimEnd().split('\n').length
     const fresh = wf.text.split('\n').filter(line => isItem(line) && !before.has(line)).length
     const { sections } = parse(wf.text)
@@ -636,7 +654,7 @@ export const register: Register = (on, options) => {
             />
             <Text dimColor> {items.length}</Text>
           </Box>
-          <Box flexDirection="row" gap={1} flexShrink={0}>
+          <Box flexDirection="row" gap={1} flexShrink={0} paddingRight={1}>
             {askButton(section.heading, section.heading, [section.heading, ...items].join('\n'))}
             <Button
               key={`o:${section.heading}`}
@@ -692,7 +710,7 @@ export const register: Register = (on, options) => {
                   </Text>
                 )}
               </Box>
-              <Box flexDirection="row" gap={1} flexShrink={0} marginLeft={1}>
+              <Box flexDirection="row" gap={1} flexShrink={0} marginLeft={1} paddingRight={1}>
                 {askButton(lineKey, section.heading, line)}
                 {!isOmitted && (
                   <Button

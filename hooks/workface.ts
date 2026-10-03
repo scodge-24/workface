@@ -94,6 +94,19 @@ export function addOwnerNote(text: string, line: string): string {
   return `${lines.join('\n')}\n`
 }
 
+// Appends a log line at the end of `## Log` (the section is added when missing).
+export function appendLog(text: string, line: string): string {
+  const lines = text.trimEnd().split('\n')
+  const at = lines.findIndex(l => /^## log\b/i.test(l))
+  if (at < 0) return `${[...lines, '', '## Log', line].join('\n')}\n`
+  let end = at + 1
+  while (end < lines.length && !lines[end]?.startsWith('## ')) end += 1
+  while (end > at + 1 && lines[end - 1]?.trim() === '') end -= 1
+  lines.splice(end, 0, line)
+
+  return `${lines.join('\n')}\n`
+}
+
 export function markOwner(text: string, owned: readonly string[]): string {
   const mine = new Set(owned)
 

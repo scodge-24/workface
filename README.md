@@ -27,11 +27,13 @@ later (mods). Run `/reload-plugins` in a session that was open during the instal
 | `/workface start <tranche>` | Creates the workface from a skeleton and attaches this session to it |
 | `/workface attach <tranche>` | Joins an existing tranche and shows the agent its workface |
 | `/workface resume` | Shows the attached workface again |
+| `/workface log <entry>` | Appends `- YYYY-MM-DD HH:MM — <entry>` to `## Log`, stamped with the local time |
 | `/workface detach` | Stops this session orchestrating it; the files stay |
 | `/workface` | Opens or closes the panel |
 
 The agent has the same verbs as the tool `mcp__workface__workface`, so it can start or join a tranche when you
-ask it to. A subagent is refused: it shares its parent's session id and would re-point it.
+ask it to. The protocol it is handed has it log through `log`, so log times come from the clock, not from the
+agent's guess. A subagent is refused: it shares its parent's session id and would re-point it.
 
 ## What it does
 

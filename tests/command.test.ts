@@ -66,3 +66,18 @@ test('the model can attach through the tool, but a subagent is refused', async (
   const main = await $.tool.call({ tool: 'mcp__workface__workface', input: { action: 'attach', tranche: 'old' } })
   expect(String(main.result)).toEqual(expect.stringMatching('attached by the workface mod just now, by attach'))
 })
+
+test('log stamps the time itself, lands at the end of ## Log, and drops a time the caller wrote', async ($, on) => {
+  const path = `${ROOT}/old/workface.md`
+  const files = world(on, { [path]: '# old\n\n## Log\n- 2026-10-03 11:00 — started\n\n## Later\n- x\n' })
+  on('tool.call', () => ({ result: 'unanswered' }))
+  expect((await run($, 'log nothing attached')).text).toEqual(expect.stringMatching('No workface is attached'))
+  await run($, 'attach old')
+  expect((await run($, 'log a1b2c3d pushed → CI running')).text).toEqual(expect.stringMatching('- 2026-10-03 12:00 — a1b2c3d pushed'))
+  const main = await $.tool.call({ tool: 'mcp__workface__workface', input: { action: 'log', entry: '- 2026-10-03 12:40 — gate 3 PASS' } })
+  expect(String(main.result)).toEqual(expect.stringMatching('Logged'))
+  expect(files[path]).toBe(
+    '# old\n\n## Log\n- 2026-10-03 11:00 — started\n- 2026-10-03 12:00 — a1b2c3d pushed → CI running\n- 2026-10-03 12:00 — gate 3 PASS\n\n## Later\n- x\n',
+  )
+  expect((await run($, 'log')).text).toEqual(expect.stringMatching('Give the log entry'))
+})

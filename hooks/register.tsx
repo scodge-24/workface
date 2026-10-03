@@ -92,8 +92,8 @@ const workfaceMessage = (wf: Workface, skip: readonly string[], when: string) =>
     '',
     `This session orchestrates the workface at ${wf.path} (file last written ${new Date(wf.mtimeMs).toISOString()}),`,
     `attached by the workface mod ${when}.`,
-    'Before acting, reconcile it against reality (git log and status in the repos it names, `br ready` / `br blocked`',
-    'where .beads/ exists, any agents or workflows it says are running); where they disagree, reality wins and the',
+    'Before acting, reconcile it against reality (git log and status in the repos it names, the work tracker it',
+    'points to, any agents or workflows it says are running); where they disagree, reality wins and the',
     'workface is fixed first. Do not re-ask a decision it attributes to the owner.',
     '',
     PROTOCOL,
@@ -108,7 +108,7 @@ const PROTOCOL = [
   '  returned or died; a review verdict; an owner decision; a parked finding; a measurement; a new next step.',
   '- Rewrite live state in place; never append a block that supersedes another. Log one line per event:',
   '  `- YYYY-MM-DD HH:MM — <what, with shas/ids> → <consequence>`. Mark PREDICTED, NOT pushed, unverified.',
-  '- Where the repo has .beads/, beads own the work state; the workface names the query instead of copying it.',
+  '- Where the repo tracks work in an issue tracker, the tracker owns the work state; name its query, do not copy it.',
   '- Budget 120 lines of at most 200 chars. Over it: collapse finished work to one line each, move old log lines',
   '  to log.md beside it, promote lasting lessons to the brief, .claude/rules/ or memory.',
   '- Scratchpad paths die with the session; label them (session-scoped). Never hold secrets or raw tool output.',
@@ -131,7 +131,7 @@ const skeleton = (tranche: string, now: string) =>
     `## Live state (as of ${now})`,
     '- HEAD / remote: <sha> (<pushed?>; CI <run id, result>)',
     '- Running: <agent/workflow id — what — launched when — what to check on return>',
-    '- Work state: `br ready` / `br blocked` (or, without beads: open owner decisions, parked, next in order)',
+    '- Work state: <the tracker query that lists it, or: open owner decisions, parked, next in order>',
     '',
     '## Policies and recipes',
     '- <push/verify gate, concurrency limits, commands that bit before>',
@@ -194,7 +194,7 @@ const flushNudge = (path: string, share: number) =>
   '[workface mod: automated reminder, not a message from the owner.] ' +
   `Context is at ${share}% of the auto-compact threshold. Before it compacts, bring the workface at ${path} up to date: ` +
   'rewrite live state in place, one log line per state change since its last write, unverified items marked. ' +
-  'The workface is re-attached after compaction; what is in neither it, the repo nor beads may not survive the summary.'
+  'The workface is re-attached after compaction; what is in neither it, the repo nor the tracker may not survive the summary.'
 
 // Theme keys, so the panel follows the person's Claude Code theme.
 const TONE_STYLE: Record<Tone, { color?: string; dimColor?: boolean }> = {

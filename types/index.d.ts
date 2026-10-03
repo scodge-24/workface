@@ -13,6 +13,8 @@ declare module 'claude-code' {
       asked: Ask | null
       // Commits newer than the workface's last write, in the repos it names.
       behind: number
+      // Whether this compaction cycle's flush reminder has gone out.
+      nudged: boolean
       // Omission keys by workface path: a section heading or a line's text.
       omitted: Record<string, string[]>
     }

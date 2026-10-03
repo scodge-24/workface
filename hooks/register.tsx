@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register } from 'claude-code'
 
 import type { Tone } from './workface'
 import { OWNER_MARK, addOwnerNote, isItem, markOwner, namedPaths, parse, spans, withoutOmitted } from './workface'
@@ -22,6 +22,8 @@ const omitted = atom({ plugin: 'workface', key: 'omitted' } as const, {})
 const asked = atom({ plugin: 'workface', key: 'asked' } as const, null)
 // Commits in the repos the workface names that are newer than its last write.
 const behind = atom({ plugin: 'workface', key: 'behind' } as const, 0)
+// Whether this compaction cycle's flush reminder went out; session state, so a plugin reload keeps it.
+const nudged = atom({ plugin: 'workface', key: 'nudged' } as const, false)
 
 type Workface = { path: string; text: string; mtimeMs: number }
 
@@ -233,20 +235,32 @@ const flushNudge = (path: string, share: number) =>
   'rewrite live state in place, one log line per state change since its last write, unverified items marked. ' +
   'The workface is re-attached after compaction; what is in neither it, the repo nor the tracker may not survive the summary.'
 
-// Theme keys, so the panel follows the person's Claude Code theme.
-const TONE_STYLE: Record<Tone, { color?: string; dimColor?: boolean }> = {
-  code: { color: 'suggestion' },
-  sha: { color: 'merged' },
-  time: { color: 'inactive' },
-  good: { color: 'success' },
-  warn: { color: 'warning' },
-  bad: { color: 'error' },
+// The panel's colours: the user's `color_*` options (plugin.json userConfig), each a theme key, a colour name
+// or a hex colour; the manifest defaults are theme keys, so an unset option follows the Claude Code theme.
+type Palette = Record<Tone | 'accent', string>
+
+function paletteFrom(options: PluginOptions): Palette {
+  const pick = (key: string, fallback: string) => {
+    const value = options[`color_${key}`]
+
+    return typeof value === 'string' && value.trim() !== '' ? value.trim() : fallback
+  }
+
+  return {
+    accent: pick('accent', 'claude'),
+    code: pick('code', 'suggestion'),
+    sha: pick('sha', 'merged'),
+    time: pick('time', 'inactive'),
+    good: pick('good', 'success'),
+    warn: pick('warn', 'warning'),
+    bad: pick('bad', 'error'),
+  }
 }
 
-const budgetColor = (lines: number) => (lines > BUDGET_LINES ? 'error' : lines > BUDGET_LINES - 20 ? 'warning' : 'success')
+const budgetColor = (lines: number, p: Palette) => (lines > BUDGET_LINES ? p.bad : lines > BUDGET_LINES - 20 ? p.warn : p.good)
 
-// A stale workface is the failure that matters on resume, so its age goes green, then yellow, then red.
-const ageColor = (ms: number) => (ms < 30 * 60_000 ? 'success' : ms < 2 * 60 * 60_000 ? 'warning' : 'error')
+// A stale workface is the failure that matters on resume, so its age goes good, then warn, then bad.
+const ageColor = (ms: number, p: Palette) => (ms < 30 * 60_000 ? p.good : ms < 2 * 60 * 60_000 ? p.warn : p.bad)
 
 const SECTION_COLORS: readonly [RegExp, string][] = [
   [/live/i, 'success'],
@@ -336,9 +350,9 @@ async function compactThreshold($: EngineInterface) {
   return context.breakdown?.autoCompactThreshold
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
   let threshold: number | undefined
-  let isNudged = false
+  const palette = paletteFrom(options)
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -403,7 +417,7 @@ export const register: Register = on => {
     const done = await next({ ...e, instructions })
     // A precompute only prepares a summary; the workface is attached when a compaction installs.
     if (e.trigger === 'precompute' || done.skip !== undefined) return done
-    isNudged = false
+    await update($, nudged, () => false)
     threshold = undefined
     const [summary, ...kept] = done.messages
     if (!summary) return done
@@ -417,12 +431,12 @@ export const register: Register = on => {
 
   on('session.measure', async ($, e, next) => {
     const out = await next(e)
-    if (isNudged || !e.changed.includes('context') || e.context.tokens === undefined) return out
+    if ((await read($, nudged)) || !e.changed.includes('context') || e.context.tokens === undefined) return out
     threshold ??= await compactThreshold($)
     if (!threshold || e.context.tokens < NUDGE_AT * threshold) return out
     const wf = await attached($)
     if (!wf) return out
-    isNudged = true
+    await update($, nudged, () => true)
     const share = Math.round((100 * e.context.tokens) / threshold)
     await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: flushNudge(wf.path, share) }] } })
 
@@ -516,7 +530,7 @@ export const register: Register = on => {
     const header = (
       <Box key="header" flexDirection="column" marginBottom={1}>
         <Box flexDirection="row" justifyContent="space-between">
-          <Text bold color="claude" wrap="truncate-end">
+          <Text bold color={palette.accent} wrap="truncate-end">
             {tranche(wf.path)}
           </Text>
           <Box flexShrink={0}>
@@ -529,20 +543,20 @@ export const register: Register = on => {
           {tab('tranches', 'Tranches')}
         </Box>
         <Text wrap="wrap">
-          <Text color={budgetColor(lines)}>
+          <Text color={budgetColor(lines, palette)}>
             {lines}/{BUDGET_LINES}
           </Text>
           <Text dimColor> lines · </Text>
-          <Text color={ageColor(ageMs)}>{age(ageMs)}</Text>
+          <Text color={ageColor(ageMs, palette)}>{age(ageMs)}</Text>
           <Text dimColor> old</Text>
           {commits > 0 && (
-            <Text color="warning">
+            <Text color={palette.warn}>
               {' · '}
               {commits} commit{commits === 1 ? '' : 's'} since
             </Text>
           )}
           {fresh > 0 && (
-            <Text color="success">
+            <Text color={palette.good}>
               {' · '}
               {fresh} new since re-attach
             </Text>
@@ -581,9 +595,9 @@ export const register: Register = on => {
               <Text color={row.path === wf.path ? 'claude' : undefined} bold={row.path === wf.path}>
                 {row.path === wf.path ? '▸' : ' '} {row.name}
               </Text>
-              <Text color={budgetColor(row.lines)}>{row.lines}L</Text>
-              <Text color={ageColor(now - row.mtimeMs)}>{age(now - row.mtimeMs)}</Text>
-              {row.running.length > 0 && <Text color="success">● {row.running.join(', ')}</Text>}
+              <Text color={budgetColor(row.lines, palette)}>{row.lines}L</Text>
+              <Text color={ageColor(now - row.mtimeMs, palette)}>{age(now - row.mtimeMs)}</Text>
+              {row.running.length > 0 && <Text color={palette.good}>● {row.running.join(', ')}</Text>}
               {row.idle > 0 && (
                 <Text dimColor>
                   ○ {row.idle} not running
@@ -648,7 +662,7 @@ export const register: Register = on => {
           // A long line's bullet becomes the control that opens it in full, keeping the line's own colours.
           const [bullet, rest] = /^\s*- /.test(line) ? [line.slice(0, line.indexOf('- ') + 2), line.slice(line.indexOf('- ') + 2)] : ['', line]
           // The gutter: the owner's own line, or one written since the last re-attach.
-          const gutter = owned.has(line) ? <Text color="claude">◆</Text> : before.has(line) ? <Text> </Text> : <Text color="success">+</Text>
+          const gutter = owned.has(line) ? <Text color={palette.accent}>◆</Text> : before.has(line) ? <Text> </Text> : <Text color={palette.good}>+</Text>
 
           return (
             <Box key={`l:${section.heading}:${i}`} flexDirection="row" justifyContent="space-between" paddingLeft={1}>
@@ -674,7 +688,7 @@ export const register: Register = on => {
                 ) : (
                   <Text wrap={wrap}>
                     {spans(rest).map(span =>
-                      span.tone === undefined ? span.text : <Text {...TONE_STYLE[span.tone]}>{span.text}</Text>,
+                      span.tone === undefined ? span.text : <Text color={palette[span.tone]}>{span.text}</Text>,
                     )}
                   </Text>
                 )}
@@ -717,7 +731,7 @@ export const register: Register = on => {
         )}
         {live.length > 0 && (
           <Box key="footer" flexDirection="row" gap={1}>
-            <Text color="warning">{live.length} omitted</Text>
+            <Text color={palette.warn}>{live.length} omitted</Text>
             <Text dimColor>from what agents get after compaction ·</Text>
             <Button key="restore" plain dimColor label="restore all" onPress={() => void restoreAll($, wf.path)} />
           </Box>

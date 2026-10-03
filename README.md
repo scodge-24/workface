@@ -62,6 +62,17 @@ ask it to. A subagent is refused: it shares its parent's session id and would re
 Colours are theme keys, so the panel follows your Claude Code theme. A status line shows the tranche, its line
 budget, its age and commits since it was last written.
 
+## Configure
+
+Colours are plugin options, shown as rows in `/config` (or set under `pluginConfigs` in `settings.json`):
+`color_accent`, `color_sha`, `color_code`, `color_time`, `color_good`, `color_warn`, `color_bad`. Each takes a
+Claude Code theme key (`success`, `warning`, `merged`, …), a terminal colour name (`magenta`, `cyan`, …) or a
+hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline that shows git in magenta:
+
+```json
+"pluginConfigs": { "workface@workface": { "options": { "color_sha": "magenta" } } }
+```
+
 ## Data
 
 Everything stays on your machine. The mod reads and writes files under `~/.claude/workface/`, reads

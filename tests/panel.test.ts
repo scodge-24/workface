@@ -121,3 +121,14 @@ test('the Tranches view lists every tranche with the sessions running on it', as
   await ui.press({ key: 't:workface' })
   await ui.unmount()
 })
+
+test('colour options recolour the panel; unset ones keep the theme keys', { options: { color_sha: 'magenta' } }, async ($, on) => {
+  world(on, { [WF]: '# demo\n## Live state\n- HEAD main 237165a, pushed\n' })
+  await run($, 'attach demo')
+  const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
+  await ui.press({ key: 'x:## Live state' })
+  const drawn = JSON.stringify(await ui.drawn())
+  expect(drawn).toEqual(expect.stringMatching('"color":"magenta"'))
+  expect(drawn).toEqual(expect.stringMatching('"color":"success"'))
+  await ui.unmount()
+})

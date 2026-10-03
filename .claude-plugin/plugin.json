@@ -7,8 +7,58 @@
     "name": "Scott Hodge"
   },
   "license": "MIT",
-  "keywords": ["compaction", "context", "long-running agents", "orchestration", "mod"],
+  "keywords": [
+    "compaction",
+    "context",
+    "long-running agents",
+    "orchestration",
+    "mod"
+  ],
   "homepage": "https://github.com/scodge-24/workface",
   "repository": "https://github.com/scodge-24/workface",
-  "types": "./types/index.d.ts"
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "color_accent": {
+      "type": "string",
+      "title": "Accent colour",
+      "description": "The tranche name and the owner-note marker. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "claude"
+    },
+    "color_sha": {
+      "type": "string",
+      "title": "Commit sha colour",
+      "description": "Commit shas in workface lines. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "merged"
+    },
+    "color_code": {
+      "type": "string",
+      "title": "Path and command colour",
+      "description": "Backticked paths and commands. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "suggestion"
+    },
+    "color_time": {
+      "type": "string",
+      "title": "Timestamp colour",
+      "description": "Log timestamps. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "inactive"
+    },
+    "color_good": {
+      "type": "string",
+      "title": "Good colour",
+      "description": "PASS / pushed / merged, a fresh workface, a line budget with room, new lines, running sessions. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "success"
+    },
+    "color_warn": {
+      "type": "string",
+      "title": "Warning colour",
+      "description": "PREDICTED / NOT pushed / unverified, an ageing workface, commits since it was written, omissions. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "warning"
+    },
+    "color_bad": {
+      "type": "string",
+      "title": "Bad colour",
+      "description": "FAIL, a stale workface, a line budget overrun. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "default": "error"
+    }
+  }
 }

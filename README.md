@@ -31,8 +31,8 @@ later (mods). Run `/reload-plugins` in a session that was open during the instal
 ## Quick start
 
 ```text
-/workface start release-2.0     # writes the skeleton; the agent fills in its links and live state
-/workface                       # opens the panel beside the transcript
+/workface start release-2.0   # writes a skeleton for the agent to fill in
+/workface                     # opens the panel beside the transcript
 ```
 
 Then work as usual. The agent updates the workface as things change, and every compaction from then on, auto or

@@ -64,7 +64,7 @@
   <text x="72" y="64" class="mono" font-size="14" letter-spacing="3" fill="#d97757">CLAUDE CODE PLUGIN</text>
   <text x="68" y="130" class="sans" font-size="64" font-weight="800" letter-spacing="-1.5" fill="url(#word)">workface<tspan class="blink" fill="#d97757">_</tspan></text>
   <text x="72" y="180" class="sans" font-size="32" font-weight="600" fill="#eef0f3">Live brain surgery on your agent's memory.</text>
-  <text x="72" y="212" class="sans" font-size="19" fill="#aab2bf">You don't choose what compaction keeps. Workface carries the agent's notes through it, and you edit them live.</text>
+  <text x="72" y="212" class="sans" font-size="19" fill="#aab2bf">You control what compaction keeps: the agent's notes come back after every summary, and you edit them live.</text>
 
   <g class="mono">
     <rect x="72" y="232" width="250" height="32" rx="16" class="chip" style="stroke:#d97757;fill:#2a1d18"/>

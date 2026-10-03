@@ -8,8 +8,8 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6cc070" alt="MIT licence"></a>
 </p>
 
-**Live brain surgery on your agent's memory.** When Claude Code compacts, you don't choose what survives, and a
-few compactions in you can't tell what the agent still knows, let alone steer it. Workface has the agent keep a
+**Live brain surgery on your agent's memory.** Left to itself, Claude Code's compaction decides what survives,
+and a few compactions in you can't tell what the agent still knows, let alone steer it. Workface has the agent keep a
 short notes file, hands it back verbatim after every compaction summary, auto or manual, and shows it live in a
 panel beside the transcript, where you cut, add or question lines before the agent wakes up with them: you choose
 what survives. One install, no setup: it works with the compaction Claude Code already does.

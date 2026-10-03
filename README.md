@@ -8,13 +8,29 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6cc070" alt="MIT licence"></a>
 </p>
 
-A Claude Code mod that keeps a long-running agent's working notes intact through every compaction, including
-auto-compaction, and shows them in a panel you can steer.
+**Live-editable compaction for Claude Code.** A long-running agent loses the thread when its context compacts.
+Workface keeps the agent's working notes and hands them back right after every compaction summary, auto or manual.
+The notes sit in a panel beside the transcript, so you watch them change as the agent works and edit what it
+will wake up with, before the next compaction lands.
 
 A **workface** is a short, links-first scratch file (at most 120 lines) at
 `~/.claude/workface/<tranche>/workface.md`: where things are, what is true now, and a dated log. An agent
 that orchestrates a long piece of work (a *tranche*) keeps it current. When the conversation compacts, the
 mod makes sure the agent wakes up holding it, and the summary spends its words on what the workface doesn't say.
+
+## Watch and steer it live
+
+<p align="center">
+  <img src="assets/panel.svg" alt="The workface panel: tabs, stats, sections on coloured bands, one section open with coloured shas and status words, ask and omit controls, and the owner note input" width="640">
+</p>
+
+- **See what it will remember.** The panel shows the workface as the agent writes it. `+` marks lines written
+  since the last compaction, and the header shows the line budget, the file's age and commits it hasn't
+  recorded yet. `Full` shows exactly what the summarizer and the agent will receive.
+- **Cut what's wrong.** `✕` keeps a stale or mistaken line out of what the agent gets back after compaction,
+  without touching the file. `↺` puts it back.
+- **Add what's yours.** `◆ note` writes your decision into the workface, marked as yours in a way no agent can forge.
+- **Ask about anything.** `?` puts a line or a whole section on your next prompt.
 
 ## Install
 
@@ -99,25 +115,17 @@ agent's guess. A subagent is refused: it shares its parent's session id and woul
 - **Attaches on resume** and leaves a subagent's own compactions alone.
 
 **The panel** (docked beside the transcript in fullscreen, inline above the prompt otherwise), modelled on the
-`/diff` panel:
+`/diff` panel. Beyond the controls above:
 
-<p align="center">
-  <img src="assets/panel.svg" alt="The workface panel: tabs, stats, sections on coloured bands, one section open with coloured shas and status words, ask and omit controls, and the owner note input" width="640">
-</p>
+- `Compact` puts sections on coloured bands; click one to expand it, and a long line opens in full from its `▸`.
+  An ask shows `✓` while pending and is taken back by a second press; it rides your next prompt once.
+- Owner notes go under `## Owner notes`. The mod records which lines you wrote and marks only those
+  (`⟨owner, verified by the workface mod⟩`) when it hands the workface over, after stripping that mark from
+  every other line.
+- `Browse` lists every tranche, the sessions running on it, its age and size.
 
-- `Compact`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
-  section and line has `?` to ask (your next prompt carries it, once; `✓` while pending, press again to take
-  it back) and `✕` to leave it out of what agents get after compaction (`↺` restores). `+` marks lines written
-  since the last re-attach, as in a diff, and the header counts them (`+14 new`) beside the line total, then
-  the workface's age and the commits made since it was last written.
-- `◆ note`: adds your own line under `## Owner notes`. The mod records which lines you wrote and marks only
-  those as yours (`⟨owner, verified by the workface mod⟩`) when it hands the workface to an agent, after
-  stripping that mark from every other line, so an agent cannot forge it.
-- `Full`: exactly what the summarizer and the agent receive. `Browse`: every tranche, the sessions
-  running on it, its age and size.
-
-Colours are theme keys, so the panel follows your Claude Code theme. The panel header shows the tranche, its line
-budget, its age and commits since it was last written; the `status_line` option puts the same in the status line.
+Colours are theme keys, so the panel follows your Claude Code theme; the `status_line` option repeats the
+header's stats in the status line.
 
 ## Configure
 

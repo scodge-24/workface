@@ -61,14 +61,14 @@
   <text x="72" y="200" class="sans" font-size="23" fill="#aab2bf">A long-running agent's working notes, kept through every compaction.</text>
 
   <g class="mono">
-    <rect x="72" y="226" width="214" height="30" rx="15" class="chip"/>
-    <text x="179" y="246" class="chip-t" text-anchor="middle">auto &amp; manual compaction</text>
-    <rect x="296" y="226" width="152" height="30" rx="15" class="chip"/>
-    <text x="372" y="246" class="chip-t" text-anchor="middle">summarizer dedup</text>
-    <rect x="458" y="226" width="144" height="30" rx="15" class="chip"/>
-    <text x="530" y="246" class="chip-t" text-anchor="middle">steerable panel</text>
-    <rect x="612" y="226" width="184" height="30" rx="15" class="chip"/>
-    <text x="704" y="246" class="chip-t" text-anchor="middle">owner-verified notes</text>
+    <rect x="72" y="226" width="214" height="30" rx="15" class="chip" style="stroke:#d97757;fill:#2a1d18"/>
+    <text x="179" y="246" class="chip-t" text-anchor="middle" style="fill:#f0a98c">live-editable compaction</text>
+    <rect x="296" y="226" width="214" height="30" rx="15" class="chip"/>
+    <text x="403" y="246" class="chip-t" text-anchor="middle">auto &amp; manual compaction</text>
+    <rect x="520" y="226" width="152" height="30" rx="15" class="chip"/>
+    <text x="596" y="246" class="chip-t" text-anchor="middle">summarizer dedup</text>
+    <rect x="682" y="226" width="184" height="30" rx="15" class="chip"/>
+    <text x="774" y="246" class="chip-t" text-anchor="middle">owner-verified notes</text>
   </g>
 
   <!-- 1. the agent fills its context -->

@@ -1,4 +1,5 @@
-export type View = 'workface' | 'preview'
+export type View = 'workface' | 'preview' | 'tranches'
+export type Ask = { key: string; text: string }
 
 declare module 'claude-code' {
   interface PluginState {
@@ -8,6 +9,10 @@ declare module 'claude-code' {
       expanded: string[]
       // Long lines the panel shows in full, as `<section heading>\n<line>`.
       openLines: string[]
+      // What the next prompt carries from the panel's `ask`, if anything.
+      asked: Ask | null
+      // Commits newer than the workface's last write, in the repos it names.
+      behind: number
       // Omission keys by workface path: a section heading or a line's text.
       omitted: Record<string, string[]>
     }

@@ -16,6 +16,7 @@ function world(on: On, files: Record<string, string>) {
   mock.store(on)
   mock.clock(on)
   on('session.id', () => ({ value: 'sid-1' }))
+  on('session.root', () => ({ value: '/home/t/repo' }))
   on('fs.exists', (_$, e) => ({ value: e.path in files }))
   on('fs.read', (_$, e) => ({ value: files[e.path] ?? '' }))
   on('fs.write', (_$, e) => {

@@ -71,3 +71,42 @@ export function spans(line: string): Span[] {
 
   return out
 }
+
+// Owner notes: lines the owner typed in the panel, kept under one section the agents also read.
+export const OWNER_SECTION = '## Owner notes'
+// Appended by the mod to lines it has on record as the owner's. Stripped from every other line first, so an
+// agent writing it into the file proves nothing.
+export const OWNER_MARK = ' ⟨owner, verified by the workface mod⟩'
+
+export function addOwnerNote(text: string, line: string): string {
+  const lines = text.trimEnd().split('\n')
+  const at = lines.indexOf(OWNER_SECTION)
+  if (at >= 0) {
+    let end = at + 1
+    while (end < lines.length && !lines[end]?.startsWith('## ')) end += 1
+    while (end > at + 1 && lines[end - 1]?.trim() === '') end -= 1
+    lines.splice(end, 0, line)
+  } else {
+    const log = lines.findIndex(l => /^## log\b/i.test(l))
+    lines.splice(log >= 0 ? log : lines.length, 0, ...(log >= 0 ? [OWNER_SECTION, line, ''] : ['', OWNER_SECTION, line]))
+  }
+
+  return `${lines.join('\n')}\n`
+}
+
+export function markOwner(text: string, owned: readonly string[]): string {
+  const mine = new Set(owned)
+
+  return text
+    .split('\n')
+    .map(line => line.split(OWNER_MARK).join(''))
+    .map(line => (mine.has(line) ? `${line}${OWNER_MARK}` : line))
+    .join('\n')
+}
+
+// Directories a workface names in backticks, absolute or under ~: the candidates for "commits since update".
+export function namedPaths(text: string, home: string): string[] {
+  const found = [...text.matchAll(/`(~?\/[^`\s*?]+)`/g)].map(m => (m[1] ?? '').replace(/^~(?=\/)/, home).replace(/\/$/, ''))
+
+  return [...new Set(found)]
+}

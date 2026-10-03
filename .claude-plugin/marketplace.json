@@ -1,0 +1,16 @@
+{
+  "name": "workface",
+  "owner": {
+    "name": "Scott Hodge"
+  },
+  "metadata": {
+    "description": "The workface mod for Claude Code."
+  },
+  "plugins": [
+    {
+      "name": "workface",
+      "source": "./",
+      "description": "Keeps a long-running agent's working notes through every compaction, with a panel to steer them."
+    }
+  ]
+}

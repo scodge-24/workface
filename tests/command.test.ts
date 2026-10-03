@@ -61,8 +61,8 @@ test('attach then detach leaves no marker', async ($, on) => {
 test('the model can attach through the tool, but a subagent is refused', async ($, on) => {
   world(on, { [`${ROOT}/old/workface.md`]: '# old\n' })
   on('tool.call', () => ({ result: 'unanswered' }))
-  const sub = await $.tool.call({ tool: 'mcp__workface-mod__workface', input: { action: 'attach', tranche: 'old' }, agentId: 'worker-1' })
+  const sub = await $.tool.call({ tool: 'mcp__workface__workface', input: { action: 'attach', tranche: 'old' }, agentId: 'worker-1' })
   expect(sub.deny ?? '').toEqual(expect.stringMatching('Only the main orchestrating session'))
-  const main = await $.tool.call({ tool: 'mcp__workface-mod__workface', input: { action: 'attach', tranche: 'old' } })
+  const main = await $.tool.call({ tool: 'mcp__workface__workface', input: { action: 'attach', tranche: 'old' } })
   expect(String(main.result)).toEqual(expect.stringMatching('attached by the workface mod just now, by attach'))
 })

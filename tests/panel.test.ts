@@ -8,7 +8,7 @@ const WF = `${ROOT}/demo/workface.md`
 const REPO = '/home/t/repo'
 const TEXT = '# demo\n\n## Live state\n- HEAD: abc1234\n\n## Log\n- 2026-10-03 11:00 — started\n'
 const PANE = {
-  plugin: 'workface-mod',
+  plugin: 'workface',
   component: 'Pane' as const,
   requestId: 'workface',
   props: { title: 'Workface', isFocused: false, bodyColumns: 120, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} },

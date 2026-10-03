@@ -8,20 +8,20 @@ import { OWNER_MARK, addOwnerNote, isItem, markOwner, namedPaths, parse, spans, 
 const NUDGE_AT = 0.8
 const BUDGET_LINES = 120
 const COMMAND = 'workface'
-const TOOL = 'mcp__workface-mod__workface'
+const TOOL = 'mcp__workface__workface'
 const TRANCHE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const PANE = 'workface'
 // What the legacy SessionStart hook (workface-session-start.sh) prints; this mod speaks for it where loaded.
 const LEGACY = /^This session (orchestrates the workface at|was attached to a workface at)/
 
-const view = atom({ plugin: 'workface-mod', key: 'view' } as const, 'workface')
-const expanded = atom({ plugin: 'workface-mod', key: 'expanded' } as const, [])
-const openLines = atom({ plugin: 'workface-mod', key: 'openLines' } as const, [])
-const omitted = atom({ plugin: 'workface-mod', key: 'omitted' } as const, {})
+const view = atom({ plugin: 'workface', key: 'view' } as const, 'workface')
+const expanded = atom({ plugin: 'workface', key: 'expanded' } as const, [])
+const openLines = atom({ plugin: 'workface', key: 'openLines' } as const, [])
+const omitted = atom({ plugin: 'workface', key: 'omitted' } as const, {})
 // The line or section the person asked about; the next prompt carries it, as the diff panel's `ask` does.
-const asked = atom({ plugin: 'workface-mod', key: 'asked' } as const, null)
+const asked = atom({ plugin: 'workface', key: 'asked' } as const, null)
 // Commits in the repos the workface names that are newer than its last write.
-const behind = atom({ plugin: 'workface-mod', key: 'behind' } as const, 0)
+const behind = atom({ plugin: 'workface', key: 'behind' } as const, 0)
 
 type Workface = { path: string; text: string; mtimeMs: number }
 

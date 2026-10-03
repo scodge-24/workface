@@ -3,7 +3,7 @@ export type Ask = { key: string; text: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    'workface-mod': {
+    'workface': {
       view: View
       // Section headings the panel shows expanded.
       expanded: string[]

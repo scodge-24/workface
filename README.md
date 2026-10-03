@@ -1,33 +1,86 @@
-# workface mod (Claude Code)
+# Workface
 
-Claude Code's workface. The `workface` skill is installed for Codex only; in Claude Code this mod is the whole
-thing. It keeps the skill's files (`~/.claude/workface/<tranche>/workface.md` and the session markers under
-`sessions/`), so a tranche moves between Codex and Claude unchanged.
+A Claude Code mod that keeps a long-running agent's working notes intact through every compaction, including
+auto-compaction, and shows them in a panel you can steer.
 
-| Hook | Does |
-|---|---|
-| `session.compact` | Adds a summarizer brief to every compaction (manual, auto, plugin, precompute) carrying the exact workface text that will follow the summary, so the summary leaves it out (headings only above 12k chars, since the request runs near the window limit); after an installed compaction, inserts the current workface right after the summary, labelled as not from the owner. Subagent compactions are left alone. |
-| `session.measure` | At 80% of the auto-compact threshold, appends one hidden note asking the agent to flush the workface. |
-| `classic.SessionStart` | Attaches the workface on resume/startup and drops the legacy `workface-session-start.sh` pointer, so a session with the mod has one source. |
-| `/workface` | `start <tranche>`, `attach <tranche>`, `resume`, `detach`; bare or `panel` opens or closes the panel (docked in fullscreen, inline otherwise), modelled on the `/diff` panel: sections expand on click, a line too long for the panel opens in full from its `▸` bullet, each section or line can be omitted from what agents get after compaction, `view:` toggles a preview of exactly that. Colours are theme keys, so it follows the Claude Code theme. |
-| panel extras | Tabs `Workface` / `Preview` / `Tranches` (every tranche, its running sessions, age, size). Header warns `N commits since` (newer than the workface's last write, in the session's repo and the repos it names in backticks) and `N new since re-attach` (lines not in the snapshot taken on attach and at each compaction, marked `+`). Each section and line has `?` (ask: rides the next prompt as context, as the diff panel's `ask` does; `✓` while pending, press again to take it back) and `✕` (omit; `↺` restores). The `◆ note` input adds an owner line under `## Owner notes`. |
-| owner provenance | The mod records the owner's notes in its store; when it hands the workface to an agent, only those lines end `⟨owner, verified by the workface mod⟩`, after stripping that mark from every other line, so an agent cannot forge it. |
-| `mcp__workface-mod__workface` | The same verbs as a tool the model calls (`action`, `tranche`); refused from a subagent, which shares the session id. |
-| protocol | The skill's update and prune rules ride in every attached-workface message (attach, resume, after compaction). |
-| status line | `workface <tranche> · <lines>/120L · <age> old` |
+A **workface** is a short, links-first scratch file (at most 120 lines) at
+`~/.claude/workface/<tranche>/workface.md`: where things are, what is true now, and a dated log. An agent
+that orchestrates a long piece of work (a *tranche*) keeps it current. When the conversation compacts, the
+mod makes sure the agent wakes up holding it.
 
-Omissions live in the plugin store keyed by workface path; the file itself is never changed. An omission
-is keyed by the line's text, so rewriting the line lapses it.
+## Install
 
-## Loading
-
-`~/.claude/settings.json` → `env.CLAUDE_CODE_PLUGIN_DIRS` names this folder. Sessions started after that
-load it; interactive ones hot-reload edits here. Sessions started before it keep the legacy hook alone.
-
-## Checking a change
+The repository is its own marketplace:
 
 ```bash
-claude plugin validate mods/workface
-claude plugin test mods/workface
-tsc -p mods/workface   # once a session has loaded it (.claude-plugin/types/ is engine-written, gitignored)
+claude plugin marketplace add scodge-24/workface
+claude plugin install workface@workface
 ```
+
+Or from a session: `/plugin install workface --marketplace scodge-24/workface`. Needs Claude Code v2.1.287 or
+later (mods). Run `/reload-plugins` in a session that was open during the install.
+
+## Use
+
+| Command | Does |
+|---|---|
+| `/workface start <tranche>` | Creates the workface from a skeleton and attaches this session to it |
+| `/workface attach <tranche>` | Joins an existing tranche and shows the agent its workface |
+| `/workface resume` | Shows the attached workface again |
+| `/workface detach` | Stops this session orchestrating it; the files stay |
+| `/workface` | Opens or closes the panel |
+
+The agent has the same verbs as the tool `mcp__workface__workface`, so it can start or join a tranche when you
+ask it to. A subagent is refused: it shares its parent's session id and would re-point it.
+
+## What it does
+
+**Through compaction**
+
+- **Briefs the summarizer** on every compaction (manual, auto, plugin-started and precomputed) with the exact
+  workface text that will follow the summary, so the summary records only what the workface does not hold.
+  Above 12k characters the summarizer gets the section headings alone, since that request runs near the
+  context limit.
+- **Re-attaches the workface** right after the summary, read fresh at that moment, labelled as automated
+  context rather than a message from you, with the update and prune protocol.
+- **Asks for a flush** once, at 80% of the auto-compact threshold, so the agent writes down what it knows first.
+- **Attaches on resume** and leaves a subagent's own compactions alone.
+
+**The panel** (docked beside the transcript in fullscreen, inline above the prompt otherwise), modelled on the
+`/diff` panel:
+
+- `Workface`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
+  section and line has `?` to ask (your next prompt carries it, once; `✓` while pending, press again to take
+  it back) and `✕` to leave it out of what agents get after compaction (`↺` restores). `+` marks lines written
+  since the last re-attach. The header warns about commits made since the workface was last written.
+- `◆ note`: adds your own line under `## Owner notes`. The mod records which lines you wrote and marks only
+  those as yours (`⟨owner, verified by the workface mod⟩`) when it hands the workface to an agent, after
+  stripping that mark from every other line, so an agent cannot forge it.
+- `Preview`: exactly what the summarizer and the agent receive. `Tranches`: every tranche, the sessions
+  running on it, its age and size.
+
+Colours are theme keys, so the panel follows your Claude Code theme. A status line shows the tranche, its line
+budget, its age and commits since it was last written.
+
+## Data
+
+Everything stays on your machine. The mod reads and writes files under `~/.claude/workface/`, reads
+`~/.claude/sessions/` to show which sessions are running, runs `git log` in the repos a workface names, and
+keeps omissions and owner-note records in its plugin store. It makes no network requests. Run
+`claude plugin validate` on a checkout to list every call it makes.
+
+## Codex and other agents
+
+The files are plain Markdown, and the session markers under `~/.claude/workface/sessions/` follow the
+`workface` skill's layout, so a tranche can move between Claude Code and a Codex session using that skill.
+
+## Develop
+
+```bash
+claude plugin validate --strict .
+claude plugin test .
+tsc -p .            # after a session has loaded the plugin (the engine writes .claude-plugin/types/)
+claude --plugin-dir .
+```
+
+See `.claude/CLAUDE.md` for the repository's conventions and `.claude/rules/` for what cost time before.

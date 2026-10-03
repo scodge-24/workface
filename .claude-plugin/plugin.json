@@ -1,1 +1,14 @@
-{ "name": "workface-mod", "version": "0.2.0", "description": "Carries the attached workface through every compaction and shows it in a panel where items can be left out", "types": "./types/index.d.ts" }
+{
+  "name": "workface",
+  "displayName": "Workface",
+  "version": "0.1.0",
+  "description": "Keeps a long-running agent's working notes through every compaction: briefs the summarizer, re-attaches the notes after the summary, and shows them in a panel you can steer.",
+  "author": {
+    "name": "Scott Hodge"
+  },
+  "license": "MIT",
+  "keywords": ["compaction", "context", "long-running agents", "orchestration", "mod"],
+  "homepage": "https://github.com/scodge-24/workface",
+  "repository": "https://github.com/scodge-24/workface",
+  "types": "./types/index.d.ts"
+}

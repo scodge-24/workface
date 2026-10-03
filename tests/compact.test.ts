@@ -89,7 +89,7 @@ test('omitting in the panel leaves it out of what the agent gets after compactio
   world(on, { [MARKER]: WF, [WF]: SECTIONED })
   on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
   for (const surface of ['terminal', 'desktop'] as const) {
-    const ui = await $.ui.mount({ plugin: 'workface-mod', surface, component: 'Pane', requestId: 'workface', props: PANE_PROPS })
+    const ui = await $.ui.mount({ plugin: 'workface', surface, component: 'Pane', requestId: 'workface', props: PANE_PROPS })
     await ui.press({ key: 'x:## Live state' })
     expect(await ui.find({ text: 'Running: wf_123' })).toBeDefined()
     await ui.press({ key: 'o:## Log' })
@@ -146,7 +146,7 @@ test('a line too long for the panel opens in full from its bullet, on every surf
   world(on, { [MARKER]: WF, [WF]: `# demo\n## Live state\n${long}\n- short\n` })
   for (const surface of ['terminal', 'desktop'] as const) {
     const ui = await $.ui.mount({
-      plugin: 'workface-mod',
+      plugin: 'workface',
       surface,
       component: 'Pane',
       requestId: 'workface',

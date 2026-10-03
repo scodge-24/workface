@@ -18,6 +18,12 @@
   "repository": "https://github.com/scodge-24/workface",
   "types": "./types/index.d.ts",
   "userConfig": {
+    "status_line": {
+      "type": "boolean",
+      "title": "Status line entry",
+      "description": "Show the attached tranche, its line budget, its age and commits since it was written in the status line.",
+      "default": false
+    },
     "color_accent": {
       "type": "string",
       "title": "Accent colour",

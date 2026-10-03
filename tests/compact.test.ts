@@ -105,11 +105,9 @@ test('omitting in the panel leaves it out of what the agent gets after compactio
   }
 })
 
-test('session start drops the legacy hook pointer and attaches the workface itself on resume', async ($, on) => {
+test('session start attaches the workface on resume and leaves it to the messages after a compaction', async ($, on) => {
   world(on, { [MARKER]: WF, [WF]: TEXT })
-  on('classic.SessionStart', () => ({
-    additionalContext: [`This session orchestrates the workface at ${WF}.\nBefore acting, invoke the workface skill in resume mode.`, 'WSL disk: fine'],
-  }))
+  on('classic.SessionStart', () => ({ additionalContext: ['WSL disk: fine'] }))
   const resumed = await $.classic.SessionStart({ source: 'resume' })
   expect(resumed.additionalContext?.[0]).toBe('WSL disk: fine')
   expect(resumed.additionalContext?.[1]).toEqual(expect.stringMatching(/attached by the workface mod at session resume[\s\S]*HEAD: abc1234/))

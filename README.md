@@ -59,8 +59,8 @@ ask it to. A subagent is refused: it shares its parent's session id and would re
 - `Full`: exactly what the summarizer and the agent receive. `Browse`: every tranche, the sessions
   running on it, its age and size.
 
-Colours are theme keys, so the panel follows your Claude Code theme. A status line shows the tranche, its line
-budget, its age and commits since it was last written.
+Colours are theme keys, so the panel follows your Claude Code theme. The panel header shows the tranche, its line
+budget, its age and commits since it was last written; the `status_line` option puts the same in the status line.
 
 ## Configure
 
@@ -72,6 +72,8 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 ```json
 "pluginConfigs": { "workface@workface": { "options": { "color_sha": "magenta" } } }
 ```
+
+`status_line` (off by default) adds the tranche, line budget, age and commits-since to Claude Code's status line.
 
 ## Data
 

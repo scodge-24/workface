@@ -11,8 +11,6 @@ const COMMAND = 'workface'
 const TOOL = 'mcp__workface__workface'
 const TRANCHE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const PANE = 'workface'
-// What the legacy SessionStart hook (workface-session-start.sh) prints; this mod speaks for it where loaded.
-const LEGACY = /^This session (orchestrates the workface at|was attached to a workface at)/
 
 const view = atom({ plugin: 'workface', key: 'view' } as const, 'workface')
 const expanded = atom({ plugin: 'workface', key: 'expanded' } as const, [])
@@ -26,6 +24,9 @@ const behind = atom({ plugin: 'workface', key: 'behind' } as const, 0)
 const nudged = atom({ plugin: 'workface', key: 'nudged' } as const, false)
 
 type Workface = { path: string; text: string; mtimeMs: number }
+
+// The `status_line` option; off unless the user turns it on. register sets it on every load.
+let showStatus = false
 
 // The workface skill's marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
 async function attached($: EngineInterface): Promise<Workface | undefined> {
@@ -300,6 +301,7 @@ async function refresh($: EngineInterface) {
   if ((await storedList($, 'snapshot', wf.path)).length === 0) await snapshot($, wf)
   const commits = await commitsSince($, wf)
   await update($, behind, () => commits)
+  if (!showStatus) return $.ui.status(undefined)
   const lines = wf.text.trimEnd().split('\n').length
   const over = lines > BUDGET_LINES ? '!' : ''
   const stale = commits > 0 ? ` · ${commits} commit${commits === 1 ? '' : 's'} since` : ''
@@ -353,6 +355,7 @@ async function compactThreshold($: EngineInterface) {
 export const register: Register = (on, options) => {
   let threshold: number | undefined
   const palette = paletteFrom(options)
+  showStatus = options.status_line === true
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -389,7 +392,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // The agent rewrites the workface with these tools; redraw the panel and the status line after each.
+  // The agent rewrites the workface with these tools; redraw the panel (and the status line, when on) after each.
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
     if (e.agentId === undefined && (e.tool === 'Edit' || e.tool === 'Write' || e.tool === 'Bash')) await refresh($)
@@ -400,12 +403,12 @@ export const register: Register = (on, options) => {
   // Resume and attach get the workface from here; the legacy hook's pointer is dropped so there is one source.
   on('classic.SessionStart', async ($, e, next) => {
     const out = await next(e)
+    // After a compaction the workface is already in the messages, right after the summary.
+    if (e.source === 'compact') return out
     const wf = await attached($)
     if (!wf) return out
-    const others = (out.additionalContext ?? []).filter(text => !LEGACY.test(text.trim()))
-    const ours = e.source === 'compact' ? [] : [await messageFor($, wf, `at session ${e.source}`)]
 
-    return { ...out, additionalContext: [...others, ...ours] }
+    return { ...out, additionalContext: [...(out.additionalContext ?? []), await messageFor($, wf, `at session ${e.source}`)] }
   })
 
   on('session.compact', async ($, e, next) => {

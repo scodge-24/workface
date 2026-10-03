@@ -132,3 +132,28 @@ test('colour options recolour the panel; unset ones keep the theme keys', { opti
   expect(drawn).toEqual(expect.stringMatching('"color":"success"'))
   await ui.unmount()
 })
+
+test('the status line entry stays off unless the status_line option is on', async ($, on) => {
+  world(on, { [WF]: TEXT })
+  const shown: (string | undefined)[] = []
+  on('ui.status', (_$, e) => {
+    shown.push(e.text)
+
+    return { value: undefined }
+  })
+  await run($, 'attach demo')
+  expect(shown.length).toBeGreaterThan(0)
+  expect(shown.every(text => text === undefined)).toBe(true)
+})
+
+test('the status_line option puts the tranche and its budget in the status line', { options: { status_line: true } }, async ($, on) => {
+  world(on, { [WF]: TEXT })
+  const shown: (string | undefined)[] = []
+  on('ui.status', (_$, e) => {
+    shown.push(e.text)
+
+    return { value: undefined }
+  })
+  await run($, 'attach demo')
+  expect(shown.at(-1)).toEqual(expect.stringMatching(/^demo · \d+\/120L/))
+})

@@ -468,7 +468,8 @@ export const register: Register = (on, options) => {
     if (e.agentId !== undefined) {
       return { deny: 'Only the main orchestrating session attaches a workface; a subagent shares its session id.' }
     }
-    const input = e.input as { action?: string; tranche?: string; entry?: string }
+    // The tool's arguments ride on the event itself, beside `tool` (not under an `input` key).
+    const input = e as unknown as { action?: string; tranche?: string; entry?: string }
     const done = await act($, input.action ?? '', (input.action === 'log' ? input.entry : input.tranche) ?? '')
 
     return done.isError ? { deny: done.text } : { result: done.text }

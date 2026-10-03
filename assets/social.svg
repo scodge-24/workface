@@ -8,20 +8,31 @@
       <stop offset="0" stop-color="#d97757" stop-opacity="0.16"/>
       <stop offset="1" stop-color="#d97757" stop-opacity="0"/>
     </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#ffffff" fill-opacity="0.045"/>
+    </pattern>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c9ced6"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
   </defs>
 
   <rect width="1280" height="640" fill="#0f1115"/>
+  <rect width="1280" height="640" fill="url(#dots)"/>
   <rect width="1280" height="640" fill="url(#glow)"/>
 
   <text x="96" y="186" class="mono" font-size="20" letter-spacing="3" fill="#d97757">CLAUDE CODE PLUGIN</text>
-  <text x="92" y="292" class="sans" font-size="112" font-weight="700" fill="#e6e8eb">workface</text>
+  <text x="88" y="292" class="sans" font-size="116" font-weight="800" letter-spacing="-2.5" fill="url(#word)">workface<tspan fill="#d97757">_</tspan></text>
   <text x="96" y="356" class="sans" font-size="32" fill="#aab2bf">A long-running agent's working notes,</text>
   <text x="96" y="400" class="sans" font-size="32" fill="#aab2bf">kept through every compaction.</text>
   <text x="96" y="532" class="mono" font-size="22" fill="#7d8590">github.com/scodge-24/workface</text>
 
   <!-- context after compaction: summary, then the workface re-attached -->
   <g transform="translate(780 150)">
-    <rect width="400" height="340" rx="18" fill="#161a21" stroke="#262c36" stroke-width="2"/>
+    <rect width="400" height="340" rx="18" fill="#161a21" stroke="#2a313c" stroke-width="2" filter="url(#shadow)"/>
     <text x="28" y="44" class="mono" font-size="17" fill="#8b93a1">context, after compaction</text>
     <rect x="28" y="66" width="344" height="56" rx="10" fill="#2b2540" stroke="#4a3f6b" stroke-width="2"/>
     <text x="48" y="101" class="mono" font-size="17" fill="#c9b8ff">summary: what's new</text>

@@ -19,6 +19,9 @@ paths:
   refuses it.
 - Never use `h` or `Fragment` as a name of your own in a `.tsx` file, not even an arrow parameter: JSX compiles
   to calls of them. Local validate passes it; the directory portal blocks it (`MOD_CAPABILITY_USE_NOT_PLAIN`).
+- Keep `"types"` in `plugin.json` although the directory portal warns it is unknown (`UNKNOWN_KEY`): it is what
+  holds every `$.state` key to `types/index.d.ts`. Only `validate --strict .claude-plugin/plugin.json` runs that
+  check; `validate .` at the repo root reads the marketplace and passes a broken or missing contract.
 - Name files under `hooks/` one by one in anything committed, never with a wildcard: the portal holds a
   plugin whose text names a mod folder by a glob (`COMMAND_NAMES_MOD_FILE`).
 - `prompt.context` blocks are served from cache after a mid-turn compaction, even after

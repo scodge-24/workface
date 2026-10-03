@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 560" width="1280" height="560" role="img" aria-labelledby="t d">
+  <title id="t">workface</title>
+  <desc id="d">A Claude Code plugin. A long-running agent fills its context; at compaction the summarizer is told what the workface already holds; the agent wakes up holding the summary and its workface.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d97757"/>
+    </marker>
+    <style>
+      .sans { font-family: -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace; }
+      .card { fill: #161a21; stroke: #262c36; stroke-width: 1.5; }
+      .msg-u { fill: #2a303b; }
+      .msg-a { fill: #3a4250; }
+      .cap { fill: #aab2bf; font-size: 17px; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="560" rx="24" fill="#0f1115"/>
+
+  <text x="72" y="82" class="mono" font-size="15" letter-spacing="2.5" fill="#d97757">CLAUDE CODE PLUGIN</text>
+  <text x="70" y="148" class="sans" font-size="66" font-weight="700" fill="#e6e8eb">workface</text>
+  <text x="72" y="194" class="sans" font-size="24" fill="#aab2bf">A long-running agent's working notes, kept through every compaction.</text>
+
+  <!-- 1. the agent fills its context -->
+  <rect x="72" y="244" width="330" height="230" rx="14" class="card"/>
+  <text x="92" y="274" class="mono" font-size="13" fill="#8b93a1">context</text>
+  <rect x="92" y="290" width="178" height="9" rx="3" class="msg-u"/>
+  <rect x="92" y="306" width="262" height="9" rx="3" class="msg-a"/>
+  <rect x="92" y="322" width="214" height="9" rx="3" class="msg-a"/>
+  <rect x="92" y="338" width="132" height="9" rx="3" class="msg-u"/>
+  <rect x="92" y="354" width="286" height="9" rx="3" class="msg-a"/>
+  <rect x="92" y="370" width="240" height="9" rx="3" class="msg-a"/>
+  <rect x="92" y="386" width="156" height="9" rx="3" class="msg-u"/>
+  <rect x="92" y="402" width="270" height="9" rx="3" class="msg-a"/>
+  <text x="92" y="440" class="mono" font-size="13" fill="#e5c07b">80% · workface flushed</text>
+  <rect x="92" y="452" width="290" height="6" rx="3" fill="#262c36"/>
+  <rect x="92" y="452" width="232" height="6" rx="3" fill="#e5c07b"/>
+
+  <line x1="410" y1="359" x2="466" y2="359" stroke="#d97757" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- 2. compaction briefs the summarizer -->
+  <rect x="475" y="244" width="330" height="230" rx="14" class="card"/>
+  <text x="495" y="274" class="mono" font-size="13" fill="#8b93a1">compaction</text>
+  <rect x="495" y="292" width="124" height="136" rx="8" fill="#1d222b" stroke="#d97757" stroke-width="1.5"/>
+  <text x="507" y="314" class="mono" font-size="12" fill="#d97757">workface.md</text>
+  <rect x="507" y="328" width="84" height="6" rx="3" fill="#6ea8fe"/>
+  <rect x="507" y="342" width="100" height="6" rx="3" fill="#3a4250"/>
+  <rect x="507" y="356" width="64" height="6" rx="3" fill="#d36ad6"/>
+  <rect x="507" y="370" width="92" height="6" rx="3" fill="#3a4250"/>
+  <rect x="507" y="384" width="76" height="6" rx="3" fill="#6cc070"/>
+  <rect x="507" y="398" width="96" height="6" rx="3" fill="#3a4250"/>
+  <rect x="507" y="412" width="58" height="6" rx="3" fill="#3a4250"/>
+  <line x1="623" y1="360" x2="652" y2="360" stroke="#d97757" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="656" y="318" width="132" height="84" rx="10" fill="#232a35" stroke="#3a4250" stroke-width="1.5"/>
+  <text x="722" y="355" class="mono" font-size="14" fill="#e6e8eb" text-anchor="middle">summarizer</text>
+  <text x="722" y="377" class="mono" font-size="12" fill="#8b93a1" text-anchor="middle">briefed</text>
+  <text x="495" y="456" class="mono" font-size="13" fill="#8b93a1">"don't restate what it holds"</text>
+
+  <line x1="813" y1="359" x2="869" y2="359" stroke="#d97757" stroke-width="2.5" marker-end="url(#arrow)"/>
+
+  <!-- 3. the agent wakes up holding it -->
+  <rect x="878" y="244" width="330" height="230" rx="14" class="card"/>
+  <text x="898" y="274" class="mono" font-size="13" fill="#8b93a1">context, after</text>
+  <rect x="898" y="290" width="290" height="42" rx="8" fill="#2b2540" stroke="#4a3f6b" stroke-width="1.5"/>
+  <text x="912" y="316" class="mono" font-size="13" fill="#c9b8ff">summary: what's new</text>
+  <rect x="898" y="342" width="290" height="80" rx="8" fill="#1d222b" stroke="#d97757" stroke-width="1.5"/>
+  <text x="912" y="366" class="mono" font-size="13" fill="#d97757">workface.md · re-attached</text>
+  <rect x="912" y="380" width="150" height="6" rx="3" fill="#6ea8fe"/>
+  <rect x="912" y="394" width="210" height="6" rx="3" fill="#3a4250"/>
+  <rect x="912" y="408" width="118" height="6" rx="3" fill="#d36ad6"/>
+  <rect x="898" y="436" width="164" height="9" rx="3" class="msg-u"/>
+  <rect x="898" y="452" width="236" height="9" rx="3" class="msg-a"/>
+
+  <text x="237" y="512" class="sans cap" text-anchor="middle">The agent fills its context</text>
+  <text x="640" y="512" class="sans cap" text-anchor="middle">The summarizer is told what it holds</text>
+  <text x="1043" y="512" class="sans cap" text-anchor="middle">The agent wakes up holding it</text>
+</svg>

@@ -1,4 +1,12 @@
-# Workface
+<p align="center">
+  <img src="assets/hero.svg" alt="workface: a long-running agent's working notes, kept through every compaction" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://github.com/scodge-24/workface/actions/workflows/ci.yml"><img src="https://github.com/scodge-24/workface/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/Claude%20Code-%E2%89%A5%202.1.287-d97757" alt="Claude Code 2.1.287 or later">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-6cc070" alt="MIT licence"></a>
+</p>
 
 A Claude Code mod that keeps a long-running agent's working notes intact through every compaction, including
 auto-compaction, and shows them in a panel you can steer.
@@ -6,7 +14,7 @@ auto-compaction, and shows them in a panel you can steer.
 A **workface** is a short, links-first scratch file (at most 120 lines) at
 `~/.claude/workface/<tranche>/workface.md`: where things are, what is true now, and a dated log. An agent
 that orchestrates a long piece of work (a *tranche*) keeps it current. When the conversation compacts, the
-mod makes sure the agent wakes up holding it.
+mod makes sure the agent wakes up holding it, and the summary spends its words on what the workface doesn't say.
 
 ## Install
 
@@ -19,6 +27,39 @@ claude plugin install workface@workface
 
 Or from a session: `/plugin install workface --marketplace scodge-24/workface`. Needs Claude Code v2.1.287 or
 later (mods). Run `/reload-plugins` in a session that was open during the install.
+
+## Quick start
+
+```text
+/workface start release-2.0     # writes the skeleton; the agent fills in its links and live state
+/workface                       # opens the panel beside the transcript
+```
+
+Then work as usual. The agent updates the workface as things change, and every compaction from then on, auto or
+manual, hands it back right after the summary. A fresh skeleton looks like this:
+
+```markdown
+# release-2.0 — workface (read first after compaction)
+
+Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.
+
+## Doctrine and evidence (links only)
+- `<path>` — <what it settles; which § matter>
+
+## Code seams
+- `<path>` — <symbols that matter; one known trap>
+
+## Live state (as of 2026-10-03 14:20)
+- HEAD / remote: <sha> (<pushed?>; CI <run id, result>)
+- Running: <agent/workflow id — what — launched when — what to check on return>
+- Work state: <the tracker query that lists it, or: open owner decisions, parked, next in order>
+
+## Policies and recipes
+- <push/verify gate, concurrency limits, commands that bit before>
+
+## Log
+- 2026-10-03 14:20 — workface started
+```
 
 ## Use
 
@@ -50,6 +91,10 @@ agent's guess. A subagent is refused: it shares its parent's session id and woul
 
 **The panel** (docked beside the transcript in fullscreen, inline above the prompt otherwise), modelled on the
 `/diff` panel:
+
+<p align="center">
+  <img src="assets/panel.svg" alt="The workface panel: tabs, stats, sections on coloured bands, one section open with coloured shas and status words, ask and omit controls, and the owner note input" width="640">
+</p>
 
 - `Compact`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
   section and line has `?` to ask (your next prompt carries it, once; `✓` while pending, press again to take
@@ -95,7 +140,7 @@ line holding the workface's path, so other tools and agents can read and keep th
 ```bash
 claude plugin validate --strict .
 claude plugin test .
-tsc -p .            # after a session has loaded the plugin (the engine writes .claude-plugin/types/)
+tsc -p .            # once `claude --plugin-dir .` has loaded it (the engine writes .claude-plugin/types/)
 claude --plugin-dir .
 ```
 

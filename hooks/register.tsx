@@ -289,7 +289,7 @@ async function refresh($: EngineInterface) {
   const lines = wf.text.trimEnd().split('\n').length
   const over = lines > BUDGET_LINES ? '!' : ''
   const stale = commits > 0 ? ` · ${commits} commit${commits === 1 ? '' : 's'} since` : ''
-  $.ui.status(`workface ${tranche(wf.path)} · ${lines}${over}/${BUDGET_LINES}L · ${age((await $.clock.now()) - wf.mtimeMs)} old${stale}`)
+  $.ui.status(`${tranche(wf.path)} · ${lines}${over}/${BUDGET_LINES}L · ${age((await $.clock.now()) - wf.mtimeMs)} old${stale}`)
 }
 
 type TrancheRow = { name: string; path: string; lines: number; mtimeMs: number; running: string[]; idle: number }
@@ -511,31 +511,43 @@ export const register: Register = on => {
     const tab = (name: 'workface' | 'preview' | 'tranches', label: string) => (
       <Button key={`t:${name}`} plain dimColor={shown !== name} label={label} onPress={() => void update($, view, () => name)} />
     )
+    // Three rows, so a narrow dock never splits a word: name and close, the tabs, then the stats as one
+    // run of text that wraps like a sentence.
     const header = (
-      <Box key="header" flexDirection="row" justifyContent="space-between">
-        <Box flexDirection="row" gap={1} flexShrink={1}>
+      <Box key="header" flexDirection="column" marginBottom={1}>
+        <Box flexDirection="row" justifyContent="space-between">
           <Text bold color="claude" wrap="truncate-end">
             {tranche(wf.path)}
           </Text>
-          <Text color={budgetColor(lines)}>
-            {lines}/{BUDGET_LINES}
-          </Text>
-          <Text dimColor>lines ·</Text>
-          <Text color={ageColor(ageMs)}>{age(ageMs)}</Text>
-          <Text dimColor>old</Text>
-          {commits > 0 && (
-            <Text color="warning">
-              · {commits} commit{commits === 1 ? '' : 's'} since
-            </Text>
-          )}
-          {fresh > 0 && <Text color="success">· {fresh} new since re-attach</Text>}
+          <Box flexShrink={0}>
+            <Button key="close" plain role="dismiss" label="✕" onPress={() => void closePanel($)} />
+          </Box>
         </Box>
-        <Box flexDirection="row" gap={1}>
+        <Box flexDirection="row" gap={2} flexShrink={0}>
           {tab('workface', 'Workface')}
           {tab('preview', 'Preview')}
           {tab('tranches', 'Tranches')}
-          <Button key="close" plain role="dismiss" label="✕" onPress={() => void closePanel($)} />
         </Box>
+        <Text wrap="wrap">
+          <Text color={budgetColor(lines)}>
+            {lines}/{BUDGET_LINES}
+          </Text>
+          <Text dimColor> lines · </Text>
+          <Text color={ageColor(ageMs)}>{age(ageMs)}</Text>
+          <Text dimColor> old</Text>
+          {commits > 0 && (
+            <Text color="warning">
+              {' · '}
+              {commits} commit{commits === 1 ? '' : 's'} since
+            </Text>
+          )}
+          {fresh > 0 && (
+            <Text color="success">
+              {' · '}
+              {fresh} new since re-attach
+            </Text>
+          )}
+        </Text>
       </Box>
     )
 
@@ -697,7 +709,7 @@ export const register: Register = on => {
             <Input
               key="owner-note"
               label="◆ note"
-              placeholder="an owner note or decision, added under Owner notes and marked as yours"
+              placeholder="owner note or decision"
               submitLabel="add"
               onSubmit={value => void addNote($, wf.path, value)}
             />

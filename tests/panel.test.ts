@@ -112,11 +112,11 @@ test('the Tranches view lists every tranche with the sessions running on it', as
     [`${ROOT}/other/workface.md`]: '# other\n',
     [`${ROOT}/sessions/sid-1`]: `${WF}\n`,
     [`${ROOT}/sessions/sid-gone`]: `${ROOT}/other/workface.md\n`,
-    [`${HOME}/.claude/sessions/4242.json`]: JSON.stringify({ sessionId: 'sid-1', name: 'agent-config-c2' }),
+    [`${HOME}/.claude/sessions/4242.json`]: JSON.stringify({ sessionId: 'sid-1', name: 'repo-a1' }),
   })
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.press({ key: 't:tranches' })
-  expect(await ui.find({ text: '● agent-config-c2' })).toBeDefined()
+  expect(await ui.find({ text: '● repo-a1' })).toBeDefined()
   expect(await ui.find({ text: '○ 1 not running' })).toBeDefined()
   await ui.press({ key: 't:workface' })
   await ui.unmount()

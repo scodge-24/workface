@@ -28,7 +28,7 @@ type Workface = { path: string; text: string; mtimeMs: number }
 // The `status_line` option; off unless the user turns it on. register sets it on every load.
 let showStatus = false
 
-// The workface skill's marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
+// The session marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
 async function attached($: EngineInterface): Promise<Workface | undefined> {
   const home = await $.env.get('HOME')
   const marker = `${home}/.claude/workface/sessions/${await $.session.id()}`
@@ -140,7 +140,7 @@ const workfaceMessage = (wf: Workface, skip: readonly string[], owned: readonly 
     markOwner(withoutOmitted(wf.text, skip), owned),
   ].join('\n')
 
-// The workface skill's update and prune rules, which Claude Code sessions now get from here instead.
+// The update and prune rules the agent is handed with the workface.
 const PROTOCOL = [
   'Workface protocol. The workface is an index, not a record: links first, then what is true now.',
   '- Update it in the same turn as every state change: a commit, push or merge; an agent or workflow launched,',
@@ -159,7 +159,7 @@ const skeleton = (tranche: string, now: string) =>
   [
     `# ${tranche} — workface (read first after compaction)`,
     '',
-    'Protocol: re-attached by the workface mod after compaction (Claude Code); `/workface resume` in the Codex skill.',
+    'Protocol: re-attached by the workface mod after compaction and on resume; `/workface resume` shows it again.',
     'Links first, then live state. Rewrite live state in place; one dated log line per state change. Budget 120 lines.',
     'Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.',
     '',
@@ -194,7 +194,7 @@ async function localNow($: EngineInterface) {
   return stdout.trim()
 }
 
-// The verbs the /workface command and the model's tool share; the marker files are the Codex skill's own.
+// The verbs the /workface command and the model's tool share.
 // `arg` is the tranche for start and attach, the entry for log.
 async function act($: EngineInterface, verb: string, arg: string): Promise<Outcome> {
   const root = `${await $.env.get('HOME')}/.claude/workface`

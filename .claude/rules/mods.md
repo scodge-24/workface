@@ -31,5 +31,5 @@ paths:
 
 ## Why
 
-Each of these cost a debugging round building this mod (2026-10-03, then in agent-config `mods/workface`). The cache behaviour
+Each of these cost a debugging round building this mod (2026-10-03). The cache behaviour
 contradicts the API doc and was found only by an end-to-end auto-compaction run.

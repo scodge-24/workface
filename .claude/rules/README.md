@@ -2,7 +2,7 @@
 
 Path-conditioned rules that Claude Code loads based on file context
 ([docs](https://code.claude.com/docs/en/memory#organize-rules-with-claude/rules/)).
-This README is the index — agents that don't auto-ingest rules (e.g. Codex)
+This README is the index — agents that don't auto-ingest rules
 enter here and read the rules matching the files they touch.
 
 Rules use `paths:` frontmatter to declare when they load; see `_template.md`

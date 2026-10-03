@@ -35,6 +35,6 @@ claude --plugin-dir .               # try it in a session (hot-reloads saved edi
 - No network calls. The README's Data section lists what the mod touches; keep it true.
 - Stay tracker-agnostic: no beads or other tool names in the protocol text.
 - Text the mod puts in the conversation is labelled as not from the owner; owner marks come only from the store.
-- The workface file format and session markers stay compatible with the Codex `workface` skill.
+- The workface file format and session markers are a stable format other tools read: change them only compatibly.
 
 Repo rules: `.claude/rules/README.md` is the index.

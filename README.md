@@ -85,10 +85,10 @@ Everything stays on your machine. The mod reads and writes files under `~/.claud
 keeps omissions and owner-note records in its plugin store. It makes no network requests. Run
 `claude plugin validate` on a checkout to list every call it makes.
 
-## Codex and other agents
+## Files
 
-The files are plain Markdown, and the session markers under `~/.claude/workface/sessions/` follow the
-`workface` skill's layout, so a tranche can move between Claude Code and a Codex session using that skill.
+A workface is plain Markdown, and each session marker under `~/.claude/workface/sessions/<session-id>` is one
+line holding the workface's path, so other tools and agents can read and keep the same tranche.
 
 ## Develop
 

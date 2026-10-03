@@ -123,3 +123,20 @@ test('a re-attached workface says the owner did not write it', async ($, on) => 
   const done = await $.session.compact({ trigger: 'auto', messages: MESSAGES })
   expect(done.messages?.[1]?.text).toEqual(expect.stringMatching(/^\[workface mod: automated context, not a message from the owner/))
 })
+
+test('the summarizer gets the exact workface it will be followed by, to dedupe against', async ($, on) => {
+  world(on, { [MARKER]: WF, [WF]: TEXT })
+  const seen = summarizer(on)
+  await $.session.compact({ trigger: 'auto', messages: MESSAGES })
+  expect(seen[0]?.instructions).toEqual(
+    expect.stringMatching(/<workface-attached-after-summary>\n# demo — workface\n- HEAD: abc1234\n<\/workface-attached-after-summary>/),
+  )
+})
+
+test('a workface too long for the summarizer request goes as its headings alone', async ($, on) => {
+  const long = `# big\n## Live state\n${'- x\n'.repeat(4000)}## Log\n- y\n`
+  world(on, { [MARKER]: WF, [WF]: long })
+  const seen = summarizer(on)
+  await $.session.compact({ trigger: 'auto', messages: MESSAGES })
+  expect(seen[0]?.instructions).toEqual(expect.stringMatching('(too long to include; its sections: Live state; Log)'))
+})

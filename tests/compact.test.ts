@@ -140,3 +140,25 @@ test('a workface too long for the summarizer request goes as its headings alone'
   await $.session.compact({ trigger: 'auto', messages: MESSAGES })
   expect(seen[0]?.instructions).toEqual(expect.stringMatching('(too long to include; its sections: Live state; Log)'))
 })
+
+test('a line too long for the panel opens in full from its bullet, on every surface', async ($, on) => {
+  const long = `- HEAD main 237165a, pushed. ${'Gate 2 re-ran and passed with coverage refreshed. '.repeat(3)}`
+  world(on, { [MARKER]: WF, [WF]: `# demo\n## Live state\n${long}\n- short\n` })
+  for (const surface of ['terminal', 'desktop'] as const) {
+    const ui = await $.ui.mount({
+      plugin: 'workface-mod',
+      surface,
+      component: 'Pane',
+      requestId: 'workface',
+      props: { ...PANE_PROPS, bodyColumns: 60 },
+    })
+    await ui.press({ key: 'x:## Live state' })
+    expect((await ui.find({ key: 'w:## Live state:0' }))?.text).toEqual(expect.stringMatching('▸'))
+    expect(await ui.find({ key: 'w:## Live state:1' })).toBeUndefined()
+    await ui.press({ key: 'w:## Live state:0' })
+    expect((await ui.find({ key: 'w:## Live state:0' }))?.text).toEqual(expect.stringMatching('▾'))
+    await ui.press({ key: 'w:## Live state:0' })
+    await ui.press({ key: 'x:## Live state' })
+    await ui.unmount()
+  }
+})

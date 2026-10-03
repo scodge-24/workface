@@ -16,6 +16,7 @@ const LEGACY = /^This session (orchestrates the workface at|was attached to a wo
 
 const view = atom({ plugin: 'workface-mod', key: 'view' } as const, 'workface')
 const expanded = atom({ plugin: 'workface-mod', key: 'expanded' } as const, [])
+const openLines = atom({ plugin: 'workface-mod', key: 'openLines' } as const, [])
 const omitted = atom({ plugin: 'workface-mod', key: 'omitted' } as const, {})
 
 type Workface = { path: string; text: string; mtimeMs: number }
@@ -373,6 +374,9 @@ export const register: Register = on => {
     if (!wf) return <Text dimColor>No workface is attached to this session.</Text>
     const shown = await read($, view)
     const open = await read($, expanded)
+    const wrapped = await read($, openLines)
+    // What a line gets beside its padding and its omit button; longer lines are cut and can be opened.
+    const room = e.props.bodyColumns - 8
     const skip = (await read($, omitted))[wf.path] ?? []
     const lines = wf.text.trimEnd().split('\n').length
     const { sections } = parse(wf.text)
@@ -465,20 +469,41 @@ export const register: Register = on => {
         head,
         ...items.map((line, i) => {
           const isOut = isOmitted || skip.includes(line)
+          const lineKey = `${section.heading}\n${line}`
+          const isLong = line.length > room
+          const isWrapped = isLong && wrapped.includes(lineKey)
+          const wrap = isWrapped ? 'wrap' : 'truncate-end'
+          // A long line's bullet becomes the control that opens it in full, keeping the line's own colours.
+          const [bullet, rest] = /^\s*- /.test(line) ? [line.slice(0, line.indexOf('- ') + 2), line.slice(line.indexOf('- ') + 2)] : ['', line]
 
           return (
             <Box key={`l:${section.heading}:${i}`} flexDirection="row" justifyContent="space-between" paddingLeft={2}>
-              {isOut ? (
-                <Text dimColor strikethrough wrap="truncate-end">
-                  {line}
-                </Text>
-              ) : (
-                <Text wrap="truncate-end">
-                  {spans(line).map(span =>
-                    span.tone === undefined ? span.text : <Text {...TONE_STYLE[span.tone]}>{span.text}</Text>,
-                  )}
-                </Text>
-              )}
+              <Box flexDirection="row" flexShrink={1}>
+                {isLong ? (
+                  <Button
+                    key={`w:${section.heading}:${i}`}
+                    plain
+                    dimColor
+                    label={`${bullet.slice(0, -2)}${isWrapped ? '▾' : '▸'} `}
+                    onPress={() =>
+                      void update($, openLines, now => (now.includes(lineKey) ? now.filter(k => k !== lineKey) : [...now, lineKey]))
+                    }
+                  />
+                ) : (
+                  <Text>{bullet}</Text>
+                )}
+                {isOut ? (
+                  <Text dimColor strikethrough wrap={wrap}>
+                    {rest}
+                  </Text>
+                ) : (
+                  <Text wrap={wrap}>
+                    {spans(rest).map(span =>
+                      span.tone === undefined ? span.text : <Text {...TONE_STYLE[span.tone]}>{span.text}</Text>,
+                    )}
+                  </Text>
+                )}
+              </Box>
               {!isOmitted && (
                 <Button
                   key={`lo:${section.heading}:${i}`}

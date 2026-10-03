@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 600" width="760" height="600" role="img" aria-labelledby="t d">
   <title id="t">The workface panel</title>
-  <desc id="d">The Compact view of the workface panel: tabs, a stats row, sections on coloured bands, one section open with coloured shas, paths and status words, a new line marked +, an owner note marked with a diamond, an omitted line struck through, ask and omit controls on the right, and the owner note input.</desc>
+  <desc id="d">The Compact view of the workface panel: tabs, a stats row, sections on coloured bands, Live state open with coloured shas, paths and status words, a new line marked +, an omitted line struck through, a pending ask, Owner notes open with the owner's line marked by a diamond, ask and omit controls on the right, and the owner note input.</desc>
   <defs>
     <style>
       .m { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace; font-size: 15px; fill: #d4d8de; white-space: pre; }
@@ -11,7 +11,7 @@
       .sha { fill: #d36ad6; }
       .code { fill: #6ea8fe; }
       .time { fill: #7d8590; }
-      .band { fill: #1b2029; }
+      .band { fill: #1b2028; }
     </style>
   </defs>
 
@@ -43,7 +43,7 @@
 
   <rect x="32" y="214" width="696" height="26" class="band"/>
   <rect x="32" y="217" width="4" height="20" fill="#d97757"/>
-  <text x="44" y="232" class="m">▾ Live state (as of 2026-10-03 14:20) <tspan class="dim">6</tspan></text>
+  <text x="44" y="232" class="m">▾ Live state (as of 2026-10-03 14:20) <tspan class="dim">5</tspan></text>
   <text x="680" y="232" class="m dim">?  ✕</text>
 
   <text x="41" y="262" class="m">  - main <tspan class="sha">4f2a9c1</tspan> pushed; CI run 18823 <tspan class="good">PASS</tspan></text>
@@ -52,30 +52,31 @@
   <text x="680" y="288" class="m dim">?  ✕</text>
   <text x="41" y="314" class="m">  - <tspan class="code">`src/store/migrate.rs`</tspan>: 2 of 5 tables, <tspan class="warn">NOT pushed</tspan></text>
   <text x="680" y="314" class="m"><tspan class="good">✓</tspan><tspan class="dim">  ✕</tspan></text>
-  <text x="41" y="340" class="m"><tspan class="acc">◆</tspan> - owner <tspan class="time">2026-10-03 14:02</tspan>: ship behind the store_v2 flag</text>
-  <text x="680" y="340" class="m dim">?  ✕</text>
-  <text x="41" y="366" class="m dim">  - <tspan text-decoration="line-through">staging URL is https://stage.internal/old</tspan></text>
-  <text x="680" y="366" class="m dim">?  ↺</text>
-  <text x="41" y="392" class="m">  <tspan class="dim">▸</tspan> Work state: <tspan class="code">`gh issue list -l release-2.0`</tspan>…</text>
-  <text x="680" y="392" class="m dim">?  ✕</text>
+  <text x="41" y="340" class="m dim">  - <tspan text-decoration="line-through">staging URL is https://stage.internal/old</tspan></text>
+  <text x="680" y="340" class="m dim">?  ↺</text>
+  <text x="41" y="366" class="m">  <tspan class="dim">▸</tspan> Work state: <tspan class="code">`gh issue list -l release-2.0`</tspan>…</text>
+  <text x="680" y="366" class="m dim">?  ✕</text>
 
-  <rect x="32" y="410" width="696" height="26" class="band"/>
-  <rect x="32" y="413" width="4" height="20" fill="#c678dd"/>
-  <text x="44" y="428" class="m">▸ Policies and recipes <tspan class="dim">3</tspan></text>
-  <text x="680" y="428" class="m dim">?  ✕</text>
+  <rect x="32" y="384" width="696" height="26" class="band"/>
+  <rect x="32" y="387" width="4" height="20" fill="#c678dd"/>
+  <text x="44" y="402" class="m">▸ Policies and recipes <tspan class="dim">3</tspan></text>
+  <text x="680" y="402" class="m dim">?  ✕</text>
 
-  <rect x="32" y="438" width="696" height="26" class="band"/>
-  <rect x="32" y="441" width="4" height="20" fill="#e5c07b"/>
-  <text x="44" y="456" class="m">▸ Owner notes <tspan class="dim">1</tspan></text>
-  <text x="680" y="456" class="m dim">?  ✕</text>
+  <rect x="32" y="412" width="696" height="26" class="band"/>
+  <rect x="32" y="415" width="4" height="20" fill="#e5c07b"/>
+  <text x="44" y="430" class="m">▾ Owner notes <tspan class="dim">1</tspan></text>
+  <text x="680" y="430" class="m dim">?  ✕</text>
 
-  <rect x="32" y="466" width="696" height="26" class="band"/>
-  <rect x="32" y="469" width="4" height="20" fill="#98c379"/>
-  <text x="44" y="484" class="m">▸ Log <tspan class="dim">9</tspan></text>
-  <text x="680" y="484" class="m dim">?  ✕</text>
+  <text x="41" y="458" class="m"><tspan class="acc">◆</tspan> - owner <tspan class="time">2026-10-03 14:02</tspan>: ship behind the store_v2 flag</text>
+  <text x="680" y="458" class="m dim">?  ✕</text>
+
+  <rect x="32" y="476" width="696" height="26" class="band"/>
+  <rect x="32" y="479" width="4" height="20" fill="#98c379"/>
+  <text x="44" y="494" class="m">▸ Log <tspan class="dim">9</tspan></text>
+  <text x="680" y="494" class="m dim">?  ✕</text>
 
   <!-- owner note input and omissions -->
-  <text x="32" y="530" class="m"><tspan class="acc">◆ note:</tspan> <tspan class="dim">owner note or decision</tspan></text>
-  <line x1="113" y1="538" x2="728" y2="538" stroke="#262c36" stroke-width="1"/>
-  <text x="32" y="566" class="m"><tspan class="warn">1 omitted</tspan> <tspan class="dim">from the re-attach · restore all</tspan></text>
+  <text x="32" y="534" class="m"><tspan class="acc">◆ note:</tspan> <tspan class="dim">owner note or decision</tspan></text>
+  <line x1="113" y1="542" x2="728" y2="542" stroke="#262c36" stroke-width="1"/>
+  <text x="32" y="568" class="m"><tspan class="warn">1 omitted</tspan> <tspan class="dim">from the re-attach · restore all</tspan></text>
 </svg>

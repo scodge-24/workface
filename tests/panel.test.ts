@@ -77,7 +77,7 @@ test('the header counts commits since the workface was written and lines new sin
   await run($, 'resume')
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   expect(await ui.find({ text: '2 commits since' })).toBeDefined()
-  expect(await ui.find({ text: '1 new since re-attach' })).toBeDefined()
+  expect(await ui.find({ text: '+1 new' })).toBeDefined()
   await ui.unmount()
 })
 

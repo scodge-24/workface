@@ -557,8 +557,8 @@ export const register: Register = (on, options) => {
         </Box>
         <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
           {stat('lines', budgetColor(lines, palette), `${lines}/${BUDGET_LINES} lines`)}
+          {fresh > 0 && stat('fresh', palette.good, `+${fresh} new`)}
           {stat('age', ageColor(ageMs, palette), `· ${age(ageMs)} old`)}
-          {fresh > 0 && stat('fresh', palette.good, `· ${fresh} new since re-attach`)}
           {commits > 0 && stat('commits', palette.sha, `· ${commits} commit${commits === 1 ? '' : 's'} since`)}
         </Box>
       </Box>

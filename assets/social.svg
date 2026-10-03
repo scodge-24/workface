@@ -44,8 +44,8 @@
   <text x="90" y="204" class="sans" font-size="100" font-weight="800" letter-spacing="-2.5" fill="url(#word)">workface</text>
   <text x="96" y="280" class="sans" font-size="44" font-weight="700" fill="#eef0f3">Live brain surgery</text>
   <text x="96" y="334" class="sans" font-size="44" font-weight="700" fill="#eef0f3">on your agent's memory.</text>
-  <text x="96" y="392" class="sans" font-size="26" fill="#aab2bf">You control what compaction keeps.</text>
-  <text x="96" y="428" class="sans" font-size="26" fill="#aab2bf">Agent notes that survive it, edited live.</text>
+  <text x="96" y="392" class="sans" font-size="26" fill="#aab2bf">Your agent keeps the notes.</text>
+  <text x="96" y="428" class="sans" font-size="26" fill="#aab2bf">You control what survives compaction, in real time.</text>
   <text x="96" y="548" class="mono" font-size="22" fill="#7d8590">github.com/scodge-24/workface</text>
 
   <!-- the panel: the agent's notes, with the owner's edits -->

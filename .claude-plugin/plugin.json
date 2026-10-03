@@ -16,6 +16,9 @@
   ],
   "homepage": "https://github.com/scodge-24/workface",
   "repository": "https://github.com/scodge-24/workface",
+  "documentationUrl": "https://github.com/scodge-24/workface#readme",
+  "supportUrl": "https://github.com/scodge-24/workface/issues",
+  "privacyPolicyUrl": "https://github.com/scodge-24/workface#data-and-files",
   "types": "./types/index.d.ts",
   "userConfig": {
     "status_line": {

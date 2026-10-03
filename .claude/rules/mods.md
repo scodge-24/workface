@@ -22,6 +22,9 @@ paths:
 - In `claude plugin test`, nothing answers an engine noun unless the test does: every `$.fs`,
   `$.session.id`, `$.store` or `$.clock` call the plugin makes needs an `on(...)` answer or `mock.*`.
   Register all of them before the test's first `$` call.
+- The engine writes `.claude-plugin/types/` only for a `--plugin-dir` or hot-reload load, not for the
+  marketplace install. Without it `tsc -p .` cannot extend its tsconfig; `noEmit` in `tsconfig.json` stops it
+  writing `.js` beside the sources. Type-check against the bundled `claude-code.d.ts` instead (see README).
 
 ## Why
 

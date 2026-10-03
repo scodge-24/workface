@@ -1,0 +1,1 @@
+{ "name": "workface-mod", "version": "0.2.0", "description": "Carries the attached workface through every compaction and shows it in a panel where items can be left out", "types": "./types/index.d.ts" }

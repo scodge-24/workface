@@ -64,7 +64,7 @@ test('an installed compaction carries the current workface right after the summa
   world(on, { [MARKER]: WF, [WF]: TEXT })
   on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }, ...KEPT] }))
   const done = await $.session.compact({ trigger: 'auto', messages: MESSAGES })
-  expect(done.messages?.map(m => m.text.slice(0, 7))).toEqual(['Summary', 'This se', '', ''])
+  expect(done.messages?.map(m => m.text.slice(0, 14))).toEqual(['Summary', '[workface mod:', '', ''])
   expect(done.messages?.[1]?.text).toEqual(expect.stringMatching('HEAD: abc1234'))
 })
 
@@ -115,4 +115,11 @@ test('session start drops the legacy hook pointer and attaches the workface itse
   expect(resumed.additionalContext?.[1]).toEqual(expect.stringMatching(/attached by the workface mod at session resume[\s\S]*HEAD: abc1234/))
   const compacted = await $.classic.SessionStart({ source: 'compact' })
   expect(compacted.additionalContext).toEqual(['WSL disk: fine'])
+})
+
+test('a re-attached workface says the owner did not write it', async ($, on) => {
+  world(on, { [MARKER]: WF, [WF]: '# demo\n## Live state\n- Next: push to main\n' })
+  on('session.compact', () => ({ messages: [{ role: 'user', text: 'Summary', toolUses: [] }] }))
+  const done = await $.session.compact({ trigger: 'auto', messages: MESSAGES })
+  expect(done.messages?.[1]?.text).toEqual(expect.stringMatching(/^\[workface mod: automated context, not a message from the owner/))
 })

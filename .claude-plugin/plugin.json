@@ -1,7 +1,7 @@
 {
   "name": "workface",
   "displayName": "Workface",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keeps a long-running agent's working notes through every compaction: briefs the summarizer, re-attaches the notes after the summary, and shows them in a panel you can steer.",
   "author": {
     "name": "Scott Hodge"

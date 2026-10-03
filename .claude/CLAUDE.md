@@ -18,8 +18,9 @@ claude --plugin-dir .               # try it in a session (hot-reloads saved edi
 ## Workflow
 
 - Conventional commits with a scope: `feat(panel): ...`, `fix(compact): ...`.
-- Releases: bump `version` in `.claude-plugin/plugin.json` and push. Without a bump, `claude plugin update`
-  keeps users on the old copy.
+- Releases: any change to `hooks/`, `types/` or the manifest that users should get is a release. Bump `version`
+  in `.claude-plugin/plugin.json`, push, then `claude plugin tag --push` (tags `workface--v<version>`). Without a
+  bump, installs are cached by version and `claude plugin update` keeps users on the old copy.
 - Never change the plugin `name` (`workface`): installs, the store and the tool name (`mcp__workface__workface`)
   are keyed by it. Change `displayName` instead.
 

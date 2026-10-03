@@ -28,6 +28,15 @@ claude plugin install workface@workface
 Or from a session: `/plugin install workface --marketplace scodge-24/workface`. Needs Claude Code v2.1.287 or
 later (mods). Run `/reload-plugins` in a session that was open during the install.
 
+### Update
+
+Claude Code leaves auto-update off for a marketplace you add yourself. Turn it on under **Marketplaces** in `/plugin`
+(select `workface`, then **Enable auto-update**), or update by hand:
+
+```bash
+claude plugin update workface@workface
+```
+
 ## Quick start
 
 ```text

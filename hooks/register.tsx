@@ -7,7 +7,9 @@ import { isItem, parse, spans, withoutOmitted } from './workface'
 // Share of the auto-compact threshold at which the agent is asked to flush the workface.
 const NUDGE_AT = 0.8
 const BUDGET_LINES = 120
-const PANEL = 'workface-panel'
+const COMMAND = 'workface'
+const TOOL = 'mcp__workface-mod__workface'
+const TRANCHE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const PANE = 'workface'
 // What the legacy SessionStart hook (workface-session-start.sh) prints; this mod speaks for it where loaded.
 const LEGACY = /^This session (orchestrates the workface at|was attached to a workface at)/
@@ -94,8 +96,99 @@ const workfaceMessage = (wf: Workface, skip: readonly string[], when: string) =>
     'where .beads/ exists, any agents or workflows it says are running); where they disagree, reality wins and the',
     'workface is fixed first. Do not re-ask a decision it attributes to the owner.',
     '',
+    PROTOCOL,
+    '',
     withoutOmitted(wf.text, skip),
   ].join('\n')
+
+// The workface skill's update and prune rules, which Claude Code sessions now get from here instead.
+const PROTOCOL = [
+  'Workface protocol. The workface is an index, not a record: links first, then what is true now.',
+  '- Update it in the same turn as every state change: a commit, push or merge; an agent or workflow launched,',
+  '  returned or died; a review verdict; an owner decision; a parked finding; a measurement; a new next step.',
+  '- Rewrite live state in place; never append a block that supersedes another. Log one line per event:',
+  '  `- YYYY-MM-DD HH:MM — <what, with shas/ids> → <consequence>`. Mark PREDICTED, NOT pushed, unverified.',
+  '- Where the repo has .beads/, beads own the work state; the workface names the query instead of copying it.',
+  '- Budget 120 lines of at most 200 chars. Over it: collapse finished work to one line each, move old log lines',
+  '  to log.md beside it, promote lasting lessons to the brief, .claude/rules/ or memory.',
+  '- Scratchpad paths die with the session; label them (session-scoped). Never hold secrets or raw tool output.',
+].join('\n')
+
+const skeleton = (tranche: string, now: string) =>
+  [
+    `# ${tranche} — workface (read first after compaction)`,
+    '',
+    'Protocol: re-attached by the workface mod after compaction (Claude Code); `/workface resume` in the Codex skill.',
+    'Links first, then live state. Rewrite live state in place; one dated log line per state change. Budget 120 lines.',
+    'Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.',
+    '',
+    '## Doctrine and evidence (links only)',
+    '- `<path>` — <what it settles; which § matter>',
+    '',
+    '## Code seams',
+    '- `<path>` — <symbols that matter; one known trap>',
+    '',
+    `## Live state (as of ${now})`,
+    '- HEAD / remote: <sha> (<pushed?>; CI <run id, result>)',
+    '- Running: <agent/workflow id — what — launched when — what to check on return>',
+    '- Work state: `br ready` / `br blocked` (or, without beads: open owner decisions, parked, next in order)',
+    '',
+    '## Policies and recipes',
+    '- <push/verify gate, concurrency limits, commands that bit before>',
+    '',
+    '## Log',
+    `- ${now} — workface started`,
+    '',
+  ].join('\n')
+
+const USAGE =
+  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | detach. ' +
+  'Workfaces live at ~/.claude/workface/<tranche>/workface.md.'
+
+type Outcome = { text: string; isError?: true }
+
+async function localNow($: EngineInterface) {
+  const { stdout } = await $.process.run(['date', '+%Y-%m-%d %H:%M'])
+
+  return stdout.trim()
+}
+
+// The verbs the /workface command and the model's tool share; the marker files are the Codex skill's own.
+async function act($: EngineInterface, verb: string, tranche: string): Promise<Outcome> {
+  const root = `${await $.env.get('HOME')}/.claude/workface`
+  const marker = `${root}/sessions/${await $.session.id()}`
+  if (verb === 'start' || verb === 'attach') {
+    if (!TRANCHE.test(tranche)) return { text: `Name the tranche: letters, digits, '.', '_' or '-'. ${USAGE}`, isError: true }
+    const path = `${root}/${tranche}/workface.md`
+    const exists = await $.fs.exists(path)
+    if (verb === 'start' && exists) return { text: `${path} already exists; attach to it instead.`, isError: true }
+    if (verb === 'attach' && !exists) return { text: `There is no workface at ${path}; start it instead.`, isError: true }
+    if (verb === 'start') await $.fs.write(path, skeleton(tranche, await localNow($)))
+    await $.fs.write(marker, `${path}\n`)
+    await refresh($)
+    const wf = await attached($)
+    if (!wf) return { text: `Wrote the marker but could not read ${path}.`, isError: true }
+    const message = workfaceMessage(wf, await omittedFor($, wf.path), `just now, by ${verb}`)
+
+    return { text: verb === 'start' ? `${message}\n\nThe skeleton is new: fill in its links, code seams and live state now.` : message }
+  }
+  if (verb === 'resume') {
+    const wf = await attached($)
+
+    return wf ? { text: workfaceMessage(wf, await omittedFor($, wf.path), 'on resume') } : { text: `No workface is attached. ${USAGE}` }
+  }
+  if (verb === 'detach') {
+    const wf = await attached($)
+    if (!wf) return { text: 'No workface is attached to this session.' }
+    await $.process.run(['rm', '-f', marker])
+    await $.ui.close({ id: PANE })
+    await refresh($)
+
+    return { text: `Detached from ${wf.path}. If the tranche is ending, add a final log line there; the tranche directory stays.` }
+  }
+
+  return { text: USAGE, isError: true }
+}
 
 const flushNudge = (path: string, share: number) =>
   '[workface mod: automated reminder, not a message from the owner.] ' +
@@ -155,7 +248,30 @@ export const register: Register = on => {
   let isNudged = false
 
   on('session.start', async ($, e, next) => {
-    await $.command.register({ name: PANEL, description: 'Open or close the workface panel' })
+    await $.command.register({
+      name: COMMAND,
+      description: 'Workface: open the panel, or start <tranche> | attach <tranche> | resume | detach',
+    })
+    await $.tool.register({
+      name: 'workface',
+      description: [
+        'Attach this session to a workface: a terse, links-first scratch doc (at most 120 lines) at',
+        '~/.claude/workface/<tranche>/workface.md that keeps a long orchestration tranche re-orientable. Once attached,',
+        'the workface mod carries it through every compaction and on resume. Use it when starting or joining long',
+        'multi-agent or multi-session work, or when the owner says "start a tranche", "resume the thread" or "where',
+        'were we". Actions: start (a new tranche; writes the skeleton to fill in), attach (join an existing tranche),',
+        'resume (show the attached workface again), detach (stop orchestrating it). Only the main orchestrating',
+        'session calls this, never a subagent: a subagent shares the session id and would re-point its parent.',
+      ].join(' '),
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: { type: 'string', enum: ['start', 'attach', 'resume', 'detach'] },
+          tranche: { type: 'string', description: 'The tranche name, for start and attach (letters, digits, . _ -)' },
+        },
+        required: ['action'],
+      },
+    })
     const stored = (await $.store.get('omitted')) as Record<string, string[]> | undefined
     await update($, omitted, () => stored ?? {})
     // As the diff panel does: it reopens unasked only for someone who opened it and did not close it since.
@@ -219,7 +335,19 @@ export const register: Register = on => {
     return out
   })
 
-  on('command.run', { command: PANEL }, async $ => {
+  on('tool.call', { tool: TOOL }, async ($, e) => {
+    if (e.agentId !== undefined) {
+      return { deny: 'Only the main orchestrating session attaches a workface; a subagent shares its session id.' }
+    }
+    const input = e.input as { action?: string; tranche?: string }
+    const done = await act($, input.action ?? '', input.tranche ?? '')
+
+    return done.isError ? { deny: done.text } : { result: done.text }
+  })
+
+  on('command.run', { command: COMMAND }, async ($, e) => {
+    const [verb = '', tranche = ''] = e.args.trim().split(/\s+/)
+    if (verb !== '' && verb !== 'panel') return { text: (await act($, verb, tranche)).text }
     if ((await $.ui.panes()).some(pane => pane.id === PANE)) {
       await closePanel($)
 

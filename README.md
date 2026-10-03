@@ -1,14 +1,17 @@
 # workface mod (Claude Code)
 
-The Claude Code half of the `workface` skill. It reads the skill's session markers
-(`~/.claude/workface/sessions/<session-id>`), so `/workface start|attach|detach` drive it unchanged.
+Claude Code's workface. The `workface` skill is installed for Codex only; in Claude Code this mod is the whole
+thing. It keeps the skill's files (`~/.claude/workface/<tranche>/workface.md` and the session markers under
+`sessions/`), so a tranche moves between Codex and Claude unchanged.
 
 | Hook | Does |
 |---|---|
 | `session.compact` | Adds a summarizer brief to every compaction (manual, auto, plugin, precompute) carrying the exact workface text that will follow the summary, so the summary leaves it out (headings only above 12k chars, since the request runs near the window limit); after an installed compaction, inserts the current workface right after the summary, labelled as not from the owner. Subagent compactions are left alone. |
 | `session.measure` | At 80% of the auto-compact threshold, appends one hidden note asking the agent to flush the workface. |
 | `classic.SessionStart` | Attaches the workface on resume/startup and drops the legacy `workface-session-start.sh` pointer, so a session with the mod has one source. |
-| `/workface-panel` | Opens or closes the panel (docked in fullscreen, inline otherwise), modelled on the `/diff` panel: sections expand on click, each section or line can be omitted from what agents get after compaction, `view:` toggles a preview of exactly that. Colours are theme keys, so it follows the Claude Code theme. |
+| `/workface` | `start <tranche>`, `attach <tranche>`, `resume`, `detach`; bare or `panel` opens or closes the panel (docked in fullscreen, inline otherwise), modelled on the `/diff` panel: sections expand on click, each section or line can be omitted from what agents get after compaction, `view:` toggles a preview of exactly that. Colours are theme keys, so it follows the Claude Code theme. |
+| `mcp__workface-mod__workface` | The same verbs as a tool the model calls (`action`, `tranche`); refused from a subagent, which shares the session id. |
+| protocol | The skill's update and prune rules ride in every attached-workface message (attach, resume, after compaction). |
 | status line | `workface <tranche> · <lines>/120L · <age> old` |
 
 Omissions live in the plugin store keyed by workface path; the file itself is never changed. An omission

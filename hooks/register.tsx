@@ -522,11 +522,21 @@ export const register: Register = (on, options) => {
       />
     )
 
+    // The selected tab sits on the band colour, as a section heading does; the others stay dim.
     const tab = (name: 'workface' | 'preview' | 'tranches', label: string) => (
-      <Button key={`t:${name}`} plain dimColor={shown !== name} label={label} onPress={() => void update($, view, () => name)} />
+      <Box key={`tb:${name}`} paddingX={1} backgroundColor={shown === name ? 'userMessageBackground' : undefined}>
+        <Button key={`t:${name}`} plain dimColor={shown !== name} label={label} onPress={() => void update($, view, () => name)} />
+      </Box>
     )
-    // Three rows, so a narrow dock never splits a word: name and close, the tabs, then the stats as one
-    // run of text that wraps like a sentence.
+    // A piece of the stats row: never shrinks, so one that does not fit moves to the next line whole.
+    const stat = (key: string, color: string | undefined, text: string) => (
+      <Box key={`st:${key}`} flexShrink={0}>
+        <Text color={color} dimColor={color === undefined}>
+          {text}
+        </Text>
+      </Box>
+    )
+    // Three rows, so a narrow dock never splits a word: name and close, the tabs, then the stats.
     const header = (
       <Box key="header" flexDirection="column" marginBottom={1}>
         <Box flexDirection="row" justifyContent="space-between">
@@ -537,31 +547,17 @@ export const register: Register = (on, options) => {
             <Button key="close" plain role="dismiss" label="✕" onPress={() => void closePanel($)} />
           </Box>
         </Box>
-        <Box flexDirection="row" gap={2} flexShrink={0}>
-          {tab('workface', 'Workface')}
-          {tab('preview', 'Preview')}
-          {tab('tranches', 'Tranches')}
+        <Box flexDirection="row" gap={1} flexShrink={0}>
+          {tab('workface', 'Compact')}
+          {tab('preview', 'Full')}
+          {tab('tranches', 'Browse')}
         </Box>
-        <Text wrap="wrap">
-          <Text color={budgetColor(lines, palette)}>
-            {lines}/{BUDGET_LINES}
-          </Text>
-          <Text dimColor> lines · </Text>
-          <Text color={ageColor(ageMs, palette)}>{age(ageMs)}</Text>
-          <Text dimColor> old</Text>
-          {commits > 0 && (
-            <Text color={palette.warn}>
-              {' · '}
-              {commits} commit{commits === 1 ? '' : 's'} since
-            </Text>
-          )}
-          {fresh > 0 && (
-            <Text color={palette.good}>
-              {' · '}
-              {fresh} new since re-attach
-            </Text>
-          )}
-        </Text>
+        <Box flexDirection="row" flexWrap="wrap" columnGap={1}>
+          {stat('lines', budgetColor(lines, palette), `${lines}/${BUDGET_LINES} lines`)}
+          {stat('age', ageColor(ageMs, palette), `· ${age(ageMs)} old`)}
+          {fresh > 0 && stat('fresh', palette.good, `· ${fresh} new since re-attach`)}
+          {commits > 0 && stat('commits', palette.warn, `· ${commits} commit${commits === 1 ? '' : 's'} since`)}
+        </Box>
       </Box>
     )
 

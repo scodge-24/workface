@@ -49,14 +49,14 @@ ask it to. A subagent is refused: it shares its parent's session id and would re
 **The panel** (docked beside the transcript in fullscreen, inline above the prompt otherwise), modelled on the
 `/diff` panel:
 
-- `Workface`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
+- `Compact`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
   section and line has `?` to ask (your next prompt carries it, once; `✓` while pending, press again to take
   it back) and `✕` to leave it out of what agents get after compaction (`↺` restores). `+` marks lines written
   since the last re-attach. The header warns about commits made since the workface was last written.
 - `◆ note`: adds your own line under `## Owner notes`. The mod records which lines you wrote and marks only
   those as yours (`⟨owner, verified by the workface mod⟩`) when it hands the workface to an agent, after
   stripping that mark from every other line, so an agent cannot forge it.
-- `Preview`: exactly what the summarizer and the agent receive. `Tranches`: every tranche, the sessions
+- `Full`: exactly what the summarizer and the agent receive. `Browse`: every tranche, the sessions
   running on it, its age and size.
 
 Colours are theme keys, so the panel follows your Claude Code theme. A status line shows the tranche, its line

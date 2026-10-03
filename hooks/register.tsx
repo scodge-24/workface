@@ -159,8 +159,6 @@ const skeleton = (tranche: string, now: string) =>
   [
     `# ${tranche} — workface (read first after compaction)`,
     '',
-    'Protocol: re-attached by the workface mod after compaction and on resume; `/workface resume` shows it again.',
-    'Links first, then live state. Rewrite live state in place; one dated log line per state change. Budget 120 lines.',
     'Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.',
     '',
     '## Doctrine and evidence (links only)',

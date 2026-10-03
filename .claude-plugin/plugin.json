@@ -33,7 +33,7 @@
     "color_sha": {
       "type": "string",
       "title": "Commit sha colour",
-      "description": "Commit shas in workface lines. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "description": "Commit shas in workface lines and the commits-since count. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
       "default": "merged"
     },
     "color_code": {
@@ -57,7 +57,7 @@
     "color_warn": {
       "type": "string",
       "title": "Warning colour",
-      "description": "PREDICTED / NOT pushed / unverified, an ageing workface, commits since it was written, omissions. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
+      "description": "PREDICTED / NOT pushed / unverified, an ageing workface, omissions. A Claude Code theme key (e.g. success, warning, merged), a terminal colour name (e.g. magenta, cyan), or a hex colour (#ff79c6).",
       "default": "warning"
     },
     "color_bad": {

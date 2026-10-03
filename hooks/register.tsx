@@ -559,7 +559,7 @@ export const register: Register = (on, options) => {
           {stat('lines', budgetColor(lines, palette), `${lines}/${BUDGET_LINES} lines`)}
           {stat('age', ageColor(ageMs, palette), `· ${age(ageMs)} old`)}
           {fresh > 0 && stat('fresh', palette.good, `· ${fresh} new since re-attach`)}
-          {commits > 0 && stat('commits', palette.warn, `· ${commits} commit${commits === 1 ? '' : 's'} since`)}
+          {commits > 0 && stat('commits', palette.sha, `· ${commits} commit${commits === 1 ? '' : 's'} since`)}
         </Box>
       </Box>
     )
@@ -729,10 +729,12 @@ export const register: Register = (on, options) => {
           </Box>
         )}
         {live.length > 0 && (
-          <Box key="footer" flexDirection="row" gap={1}>
-            <Text color={palette.warn}>{live.length} omitted</Text>
-            <Text dimColor>from what agents get after compaction ·</Text>
-            <Button key="restore" plain dimColor label="restore all" onPress={() => void restoreAll($, wf.path)} />
+          <Box key="footer" flexDirection="row" flexWrap="wrap" columnGap={1}>
+            {stat('omitted', palette.warn, `${live.length} omitted`)}
+            {stat('from', undefined, 'from the re-attach')}
+            <Box key="st:restore" flexShrink={0}>
+              <Button key="restore" plain dimColor label="· restore all" onPress={() => void restoreAll($, wf.path)} />
+            </Box>
           </Box>
         )}
       </Box>

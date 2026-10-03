@@ -52,7 +52,7 @@ ask it to. A subagent is refused: it shares its parent's session id and would re
 - `Compact`: sections on coloured bands; click to expand, and a long line opens in full from its `▸`. Each
   section and line has `?` to ask (your next prompt carries it, once; `✓` while pending, press again to take
   it back) and `✕` to leave it out of what agents get after compaction (`↺` restores). `+` marks lines written
-  since the last re-attach. The header warns about commits made since the workface was last written.
+  since the last re-attach. The header counts commits made since the workface was last written.
 - `◆ note`: adds your own line under `## Owner notes`. The mod records which lines you wrote and marks only
   those as yours (`⟨owner, verified by the workface mod⟩`) when it hands the workface to an agent, after
   stripping that mark from every other line, so an agent cannot forge it.

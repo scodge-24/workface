@@ -150,7 +150,8 @@ list every call it makes.
   `/workface start`, your owner notes, `log` lines) and one session marker per attached session at
   `~/.claude/workface/sessions/<session-id>`.
 - **Files it reads**: the workfaces and markers under `~/.claude/workface/`, and `~/.claude/sessions/` to show
-  in `Browse` which sessions are running.
+  in `Browse` which sessions are running. It reads one environment variable, `HOME`, only to find `~/.claude`,
+  and reads no credentials, tokens or keys.
 - **Programs it runs**, each with fixed arguments: `date '+%Y-%m-%d %H:%M'` for the local time on log lines and
   owner notes; `git -C <repo> log -n 50 --format=%ct` for the commits-since count, in the session's repo and the
   repos a workface names; `rm -f <marker>` to delete this session's marker on `/workface detach`.

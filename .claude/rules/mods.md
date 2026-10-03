@@ -1,6 +1,5 @@
 ---
 paths:
-  - 'hooks/hooks.json'
   - 'hooks/register.tsx'
   - 'hooks/workface.ts'
   - 'tests/**'
@@ -22,8 +21,8 @@ paths:
 - Keep `"types"` in `plugin.json` although the directory portal warns it is unknown (`UNKNOWN_KEY`): it is what
   holds every `$.state` key to `types/index.d.ts`. Only `validate --strict .claude-plugin/plugin.json` runs that
   check; `validate .` at the repo root reads the marketplace and passes a broken or missing contract.
-- Name files under `hooks/` one by one in anything committed, never with a wildcard: the portal holds a
-  plugin whose text names a mod folder by a glob (`COMMAND_NAMES_MOD_FILE`).
+- Never name the hooks folder's manifest (the one listing the modules) in a committed text file, not even in
+  rule frontmatter, and never glob over `hooks/`: the portal holds the plugin (`COMMAND_NAMES_MOD_FILE`).
 - `prompt.context` blocks are served from cache after a mid-turn compaction, even after
   `$.ui.invalidate('prompt.context')`. Put post-compaction context in the `session.compact` result's
   `messages`.

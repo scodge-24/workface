@@ -484,24 +484,26 @@ export const register: Register = on => {
     const skip = (await read($, omitted))[wf.path] ?? []
     const owned = new Set(await storedList($, 'ownerNotes', wf.path))
     const before = new Set(await storedList($, 'snapshot', wf.path))
-    // What a line gets beside its gutter, padding and its ask/omit buttons; longer lines are cut and can be opened.
-    const room = e.props.bodyColumns - 14
+    // What a line gets beside its gutter, padding and its ask/omit icons; longer lines are cut and can be opened.
+    const room = e.props.bodyColumns - 10
     const lines = wf.text.trimEnd().split('\n').length
     const fresh = wf.text.split('\n').filter(line => isItem(line) && !before.has(line)).length
     const { sections } = parse(wf.text)
     const now = await $.clock.now()
     const ageMs = now - wf.mtimeMs
+    // A second press takes the ask back, as a second omit press restores.
     const ask = (key: string, heading: string, body: string) =>
-      void update($, asked, () => ({
-        key,
-        text: `The owner points at this part of the workface (${wf.path}, section "${heading.slice(3)}"):\n${body}`,
-      }))
+      void update($, asked, now =>
+        now?.key === key
+          ? null
+          : { key, text: `The owner points at this part of the workface (${wf.path}, section "${heading.slice(3)}"):\n${body}` },
+      )
     const askButton = (key: string, heading: string, body: string) => (
       <Button
         key={`a:${key}`}
         plain
         dimColor={pending?.key !== key}
-        label={pending?.key === key ? 'asked ✓' : 'ask'}
+        label={pending?.key === key ? '✓' : '?'}
         onPress={() => ask(key, heading, body)}
       />
     )
@@ -609,13 +611,13 @@ export const register: Register = on => {
             />
             <Text dimColor> {items.length}</Text>
           </Box>
-          <Box flexDirection="row" gap={1}>
+          <Box flexDirection="row" gap={1} flexShrink={0}>
             {askButton(section.heading, section.heading, [section.heading, ...items].join('\n'))}
             <Button
               key={`o:${section.heading}`}
               plain
               dimColor
-              label={isOmitted ? 'keep' : 'omit'}
+              label={isOmitted ? '↺' : '✕'}
               onPress={() => void toggleOmitted($, wf.path, section.heading)}
             />
           </Box>
@@ -665,14 +667,14 @@ export const register: Register = on => {
                   </Text>
                 )}
               </Box>
-              <Box flexDirection="row" gap={1}>
+              <Box flexDirection="row" gap={1} flexShrink={0} marginLeft={1}>
                 {askButton(lineKey, section.heading, line)}
                 {!isOmitted && (
                   <Button
                     key={`lo:${section.heading}:${i}`}
                     plain
                     dimColor
-                    label={skip.includes(line) ? 'keep' : 'omit'}
+                    label={skip.includes(line) ? '↺' : '✕'}
                     onPress={() => void toggleOmitted($, wf.path, line)}
                   />
                 )}

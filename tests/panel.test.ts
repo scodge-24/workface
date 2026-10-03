@@ -81,7 +81,7 @@ test('the header counts commits since the workface was written and lines new sin
   await ui.unmount()
 })
 
-test('ask puts the line on the next prompt once, as the diff panel does', async ($, on) => {
+test('ask puts the line on the next prompt once, as the diff panel does; a second press takes it back', async ($, on) => {
   world(on, { [WF]: TEXT })
   const carried: (readonly string[] | undefined)[] = []
   on('prompt.submit', (_$, e) => {
@@ -93,11 +93,16 @@ test('ask puts the line on the next prompt once, as the diff panel does', async 
   const ui = await $.ui.mount({ ...PANE, surface: 'terminal' })
   await ui.press({ key: 'x:## Live state' })
   await ui.press({ key: 'a:## Live state\n- HEAD: abc1234' })
-  expect((await ui.find({ key: 'a:## Live state\n- HEAD: abc1234' }))?.text).toBe('asked ✓')
+  expect((await ui.find({ key: 'a:## Live state\n- HEAD: abc1234' }))?.text).toBe('✓')
   await $.prompt.submit({ text: 'is this pushed?', wait: false, origin: { kind: 'composer' } })
   await $.prompt.submit({ text: 'and now?', wait: false, origin: { kind: 'composer' } })
   expect(carried[0]?.[0]).toEqual(expect.stringMatching(/section "Live state"\):\n- HEAD: abc1234$/))
   expect(carried[1]).toBeUndefined()
+  await ui.press({ key: 'a:## Live state\n- HEAD: abc1234' })
+  await ui.press({ key: 'a:## Live state\n- HEAD: abc1234' })
+  expect((await ui.find({ key: 'a:## Live state\n- HEAD: abc1234' }))?.text).toBe('?')
+  await $.prompt.submit({ text: 'never mind', wait: false, origin: { kind: 'composer' } })
+  expect(carried[2]).toBeUndefined()
   await ui.unmount()
 })
 

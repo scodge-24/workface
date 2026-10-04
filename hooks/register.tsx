@@ -2,11 +2,33 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, PluginOptions, Register } from 'claude-code'
 
 import type { Tone } from './workface'
-import { OWNER_MARK, addOwnerNote, appendLog, isItem, markOwner, namedPaths, parse, spans, withoutOmitted } from './workface'
+import {
+  ARCHIVE_POINTER,
+  OWNER_MARK,
+  addOwnerNote,
+  appendLog,
+  archiveIndexHead,
+  archiveRow,
+  archiveRows,
+  dateSpan,
+  isItem,
+  logEntryCount,
+  markOwner,
+  namedPaths,
+  parse,
+  spans,
+  splitLog,
+  withArchivePointer,
+  withArchiveRow,
+  withoutOmitted,
+} from './workface'
 
 // Share of the auto-compact threshold at which the agent is asked to flush the workface.
 const NUDGE_AT = 0.8
 const BUDGET_LINES = 120
+// Past this many log entries the agent is asked to archive the older ones; archive keeps the last KEEP_ENTRIES.
+const LOG_LIMIT = 25
+const KEEP_ENTRIES = 10
 const COMMAND = 'workface'
 const TOOL = 'mcp__workface__workface'
 const TRANCHE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
@@ -22,6 +44,8 @@ const asked = atom({ plugin: 'workface', key: 'asked' } as const, null)
 const behind = atom({ plugin: 'workface', key: 'behind' } as const, 0)
 // Whether this compaction cycle's flush reminder went out; session state, so a plugin reload keeps it.
 const nudged = atom({ plugin: 'workface', key: 'nudged' } as const, false)
+// Whether the trim reminder went out since the workface last went over budget; re-arms once it is back under.
+const trimWarned = atom({ plugin: 'workface', key: 'trimWarned' } as const, false)
 
 type Workface = { path: string; text: string; mtimeMs: number }
 
@@ -145,7 +169,8 @@ const PROTOCOL = [
   '- Rewrite live state in place, never append a superseding block. Log each event with the workface tool\'s',
   '  `log` action (it stamps the time): `<what, with shas/ids> → <consequence>`. Other times come from `date`.',
   '- Mark PREDICTED, NOT pushed, unverified. Where a tracker owns work state, name its query; do not copy it.',
-  '- Budget 120 lines of ≤200 chars: collapse finished work, move old log lines to log.md, promote lessons to rules.',
+  '- Budget 120 lines of ≤200 chars: collapse finished work, promote lessons to rules. When the mod says the log is',
+  '  long, lift what is still needed into live state or policies, then `archive` the rest with a summary.',
   '- Label scratchpad paths session-scoped. No secrets or raw tool output.',
 ].join('\n')
 
@@ -175,7 +200,7 @@ const skeleton = (tranche: string, now: string) =>
   ].join('\n')
 
 const USAGE =
-  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | log <entry> | detach. ' +
+  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | log <entry> | archive <summary> | detach. ' +
   'Workfaces live at ~/.claude/workface/<tranche>/workface.md.'
 
 type Outcome = { text: string; isError?: true }
@@ -187,8 +212,8 @@ async function localNow($: EngineInterface) {
 }
 
 // The verbs the /workface command and the model's tool share.
-// `arg` is the tranche for start and attach, the entry for log.
-async function act($: EngineInterface, verb: string, arg: string): Promise<Outcome> {
+// `arg` is the tranche for start and attach, the entry for log, the summary for archive.
+async function act($: EngineInterface, verb: string, arg: string, keep = KEEP_ENTRIES): Promise<Outcome> {
   const root = `${await $.env.get('HOME')}/.claude/workface`
   const marker = `${root}/sessions/${await $.session.id()}`
   if (verb === 'start' || verb === 'attach') {
@@ -200,6 +225,7 @@ async function act($: EngineInterface, verb: string, arg: string): Promise<Outco
     if (verb === 'attach' && !exists) return { text: `There is no workface at ${path}; start it instead.`, isError: true }
     if (verb === 'start') await $.fs.write(path, skeleton(tranche, await localNow($)))
     await $.fs.write(marker, `${path}\n`)
+    await update($, trimWarned, () => false)
     await refresh($)
     const wf = await attached($)
     if (!wf) return { text: `Wrote the marker but could not read ${path}.`, isError: true }
@@ -220,11 +246,14 @@ async function act($: EngineInterface, verb: string, arg: string): Promise<Outco
     const entry = arg.replace(/\s+/g, ' ').trim().replace(/^-?\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}\s*—\s*/, '')
     if (entry === '') return { text: 'Give the log entry: <what, with shas/ids> → <consequence>.', isError: true }
     const line = `- ${await localNow($)} — ${entry}`
-    await $.fs.write(wf.path, appendLog(await $.fs.read(wf.path), line))
+    const text = appendLog(await $.fs.read(wf.path), line)
+    await $.fs.write(wf.path, text)
     await refresh($)
+    const warning = await trimWarning($, wf.path, text)
 
-    return { text: `Logged in ${wf.path}: ${line}` }
+    return { text: `Logged in ${wf.path}: ${line}${warning ? `\n\n${warning}` : ''}` }
   }
+  if (verb === 'archive') return archive($, arg, keep)
   if (verb === 'detach') {
     const wf = await attached($)
     if (!wf) return { text: 'No workface is attached to this session.' }
@@ -238,11 +267,90 @@ async function act($: EngineInterface, verb: string, arg: string): Promise<Outco
   return { text: USAGE, isError: true }
 }
 
-const flushNudge = (path: string, share: number) =>
+// A free chunk name in the archive: `<first>_<last>.md`, suffixed `-2`, `-3` … when a chunk already has the span.
+async function chunkName($: EngineInterface, dir: string, span: string) {
+  let name = `${span}.md`
+  for (let n = 2; await $.fs.exists(`${dir}/${name}`); n += 1) name = `${span}-${n}.md`
+
+  return name
+}
+
+// Moves all but the last `keep` log entries, verbatim, into a new chunk under <tranche>/log/, indexes the chunk with
+// the agent's summary in log/README.md, and points the workface's log at that index. A log.md the agents kept by hand
+// before the archive moves in as its own chunk first. The chunk and index are written before the workface sheds the
+// entries, so a failure part way loses nothing.
+async function archive($: EngineInterface, summaryArg: string, keep: number): Promise<Outcome> {
+  const wf = await attached($)
+  if (!wf) return { text: `No workface is attached. ${USAGE}`, isError: true }
+  const summary = summaryArg.replace(/\s+/g, ' ').trim()
+  if (summary === '') {
+    return { text: 'Give a summary of the entries being archived: the features, files, shas and decisions they cover, so a later agent can find them.', isError: true }
+  }
+  if (!Number.isInteger(keep) || keep < 0) return { text: '`keep` is how many of the latest entries stay: a whole number, 0 or more.', isError: true }
+  const split = splitLog(wf.text, keep)
+  if (!split) return { text: `The log has ${logEntryCount(wf.text)} entries; none are older than the last ${keep}, so nothing was archived.`, isError: true }
+  const folder = wf.path.replace(/\/[^/]+$/, '')
+  const dir = `${folder}/log`
+  const index = `${dir}/README.md`
+  let rows = (await $.fs.exists(index)) ? await $.fs.read(index) : archiveIndexHead(tranche(wf.path))
+  const notes: string[] = []
+  const legacy = `${folder}/log.md`
+  if (await $.fs.exists(legacy)) {
+    const old = await $.fs.read(legacy)
+    const span = dateSpan(old)
+    const name = await chunkName($, dir, span ? span.join('_') : 'earlier')
+    await $.fs.write(`${dir}/${name}`, old)
+    const count = old.split('\n').filter(l => l.startsWith('- ')).length
+    rows = withArchiveRow(rows, archiveRow(name, span?.[0] ?? '?', span?.[1] ?? '?', count, 'moved in from log.md, kept by hand before the archive; no summary, search it'))
+    await $.fs.write(index, rows)
+    await $.process.run(['rm', '-f', legacy])
+    notes.push(`log.md moved to ${dir}/${name}: fix any workface line that still points at log.md.`)
+  }
+  const name = await chunkName($, dir, `${split.first}_${split.last}`)
+  await $.fs.write(`${dir}/${name}`, `# ${tranche(wf.path)}: log, ${split.first} → ${split.last}\n\n${split.moved.join('\n')}\n`)
+  rows = withArchiveRow(rows, archiveRow(name, split.first, split.last, split.count, summary))
+  await $.fs.write(index, rows)
+  const chunks = archiveRows(rows)
+  const pointer = `${ARCHIVE_POINTER}${index} (${chunks} chunk${chunks === 1 ? '' : 's'} of older log entries through ${split.last}, with summaries)`
+  // Read again: the agent may have written the file since `attached` read it.
+  const fresh = splitLog(await $.fs.read(wf.path), keep)
+  await $.fs.write(wf.path, withArchivePointer(fresh?.text ?? split.text, pointer))
+  await update($, trimWarned, () => false)
+  await refresh($)
+
+  return { text: [`Archived ${split.count} log entries (${split.first} → ${split.last}) to ${dir}/${name}, indexed in ${index}.`, ...notes].join(' ') }
+}
+
+// The trim reminder, once each time the workface goes over budget: its lines past BUDGET_LINES or its log past LOG_LIMIT.
+async function trimWarning($: EngineInterface, path: string, text: string): Promise<string | undefined> {
+  const lines = text.trimEnd().split('\n').length
+  const entries = logEntryCount(text)
+  if (lines <= BUDGET_LINES && entries <= LOG_LIMIT) {
+    await update($, trimWarned, () => false)
+
+    return undefined
+  }
+  if (await read($, trimWarned)) return undefined
+  await update($, trimWarned, () => true)
+
+  return (
+    '[workface mod: automated reminder, not a message from the owner.] ' +
+    `The workface at ${path} is ${lines}/${BUDGET_LINES} lines with ${entries} log entries. Trim it now. ` +
+    (entries > LOG_LIMIT / 2
+      ? 'Lift anything in the older log entries that is still needed into live state, policies or a repo rule, then call ' +
+        'the workface tool\'s `archive` action with a `summary` naming the features, files, shas and decisions those ' +
+        `entries cover; it moves all but the last ${KEEP_ENTRIES}, verbatim, to the tranche's log/ folder.`
+      : 'Collapse finished work in live state and promote lessons from policies to repo rules.')
+  )
+}
+
+const flushNudge = (path: string, share: number, text: string) =>
   '[workface mod: automated reminder, not a message from the owner.] ' +
   `Context is at ${share}% of the auto-compact threshold. Before it compacts, bring the workface at ${path} up to date: ` +
   'rewrite live state in place, one `log` action per state change since its last write, unverified items marked. ' +
-  'The workface is re-attached after compaction; what is in neither it, the repo nor the tracker may not survive the summary.'
+  `It is ${text.trimEnd().split('\n').length}/${BUDGET_LINES} lines with ${logEntryCount(text)} log entries` +
+  (logEntryCount(text) > LOG_LIMIT ? '; `archive` the older entries first.' : '.') +
+  ' The workface is re-attached after compaction; what is in neither it, the repo nor the tracker may not survive the summary.'
 
 // The panel's colours: the user's `color_*` options (plugin.json userConfig), each a theme key, a colour name
 // or a hex colour; the manifest defaults are theme keys, so an unset option follows the Claude Code theme.
@@ -376,14 +484,18 @@ export const register: Register = (on, options) => {
         'A workface is a short, links-first notes file (~/.claude/workface/<tranche>/workface.md) the mod re-attaches',
         'after every compaction and on resume. Use for long multi-agent or multi-session work, or when the owner says',
         '"start a tranche", "resume the thread" or "where were we". Actions: start (writes a skeleton), attach, resume,',
-        'log (appends `entry` to the log, time stamped by the mod), detach. Main session only: a subagent shares its id.',
+        'log (appends `entry` to the log, time stamped by the mod), archive (moves all but the last `keep` log entries,',
+        'default 10, verbatim to the tranche\'s log/ folder, indexed with your `summary`), detach. Main session only:',
+        'a subagent shares its id.',
       ].join(' '),
       inputSchema: {
         type: 'object',
         properties: {
-          action: { type: 'string', enum: ['start', 'attach', 'resume', 'log', 'detach'] },
+          action: { type: 'string', enum: ['start', 'attach', 'resume', 'log', 'archive', 'detach'] },
           tranche: { type: 'string', description: 'The tranche name, for start and attach (letters, digits, . _ -)' },
           entry: { type: 'string', description: 'For log: `<what, with shas/ids> → <consequence>`; the mod adds the time' },
+          summary: { type: 'string', description: 'For archive: the features, files, shas and decisions the archived entries cover' },
+          keep: { type: 'integer', description: 'For archive: how many of the latest log entries stay (default 10)' },
         },
         required: ['action'],
       },
@@ -402,6 +514,12 @@ export const register: Register = (on, options) => {
   on('tool.call', async ($, e, next) => {
     const ran = await next(e)
     if (e.agentId === undefined && (e.tool === 'Edit' || e.tool === 'Write' || e.tool === 'Bash')) await refresh($)
+    // An Edit or Write of the workface that takes it over budget gets the trim reminder after its result.
+    const wf = e.agentId === undefined && (e.tool === 'Edit' || e.tool === 'Write') ? await attached($) : undefined
+    if (wf && (e as unknown as { file_path?: string }).file_path === wf.path && 'result' in ran && ran.result !== undefined) {
+      const warning = await trimWarning($, wf.path, wf.text)
+      if (warning) return { ...ran, context: [...(ran.context ?? []), warning] }
+    }
 
     return ran
   })
@@ -447,7 +565,7 @@ export const register: Register = (on, options) => {
     if (!wf) return out
     await update($, nudged, () => true)
     const share = Math.round((100 * e.context.tokens) / threshold)
-    await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: flushNudge(wf.path, share) }] } })
+    await $.session.append({ message: { type: 'user', content: [{ type: 'text', text: flushNudge(wf.path, share, wf.text) }] } })
 
     return out
   })
@@ -457,8 +575,9 @@ export const register: Register = (on, options) => {
       return { deny: 'Only the main orchestrating session attaches a workface; a subagent shares its session id.' }
     }
     // The tool's arguments ride on the event itself, beside `tool` (not under an `input` key).
-    const input = e as unknown as { action?: string; tranche?: string; entry?: string }
-    const done = await act($, input.action ?? '', (input.action === 'log' ? input.entry : input.tranche) ?? '')
+    const input = e as unknown as { action?: string; tranche?: string; entry?: string; summary?: string; keep?: number }
+    const arg = input.action === 'log' ? input.entry : input.action === 'archive' ? input.summary : input.tranche
+    const done = await act($, input.action ?? '', arg ?? '', input.keep)
 
     return done.isError ? { deny: done.text } : { result: done.text }
   })

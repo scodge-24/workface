@@ -107,6 +107,93 @@ export function appendLog(text: string, line: string): string {
   return `${lines.join('\n')}\n`
 }
 
+// Log entries: the dated `- YYYY-MM-DD` items under `## Log`, each with its indented continuation lines.
+// Undated items there (notes, lessons) are not entries: they stay put and never count.
+const DATED = /^- (\d{4}-\d{2}-\d{2})/
+// The line under `## Log` the mod keeps pointing at the tranche's archive index.
+export const ARCHIVE_POINTER = 'Archive: '
+
+type Entry = { start: number; stop: number; date: string }
+
+function logEntryRanges(lines: readonly string[]): Entry[] {
+  const at = lines.findIndex(l => /^## log\b/i.test(l))
+  if (at < 0) return []
+  const entries: Entry[] = []
+  for (let i = at + 1; i < lines.length && !lines[i]?.startsWith('## '); i += 1) {
+    const line = lines[i] ?? ''
+    const date = DATED.exec(line)?.[1]
+    const last = entries[entries.length - 1]
+    if (date) entries.push({ start: i, stop: i + 1, date })
+    else if (last?.stop === i && /^\s+\S/.test(line)) last.stop = i + 1
+  }
+
+  return entries
+}
+
+export const logEntryCount = (text: string) => logEntryRanges(text.trimEnd().split('\n')).length
+
+export type Split = { text: string; moved: string[]; count: number; first: string; last: string }
+
+// Takes all but the last `keep` log entries out of the workface, verbatim and oldest first; undefined when none go.
+export function splitLog(text: string, keep: number): Split | undefined {
+  const lines = text.trimEnd().split('\n')
+  const entries = logEntryRanges(lines)
+  const go = entries.slice(0, Math.max(0, entries.length - keep))
+  const first = go[0]
+  const last = go[go.length - 1]
+  if (!first || !last) return undefined
+  const drop = new Set(go.flatMap(e => Array.from({ length: e.stop - e.start }, (_, k) => e.start + k)))
+
+  return {
+    text: `${lines.filter((_, i) => !drop.has(i)).join('\n')}\n`,
+    moved: go.flatMap(e => lines.slice(e.start, e.stop)),
+    count: go.length,
+    first: first.date,
+    last: last.date,
+  }
+}
+
+// Sets the archive pointer as the first line under `## Log`, replacing the one there (the section is added when missing).
+export function withArchivePointer(text: string, pointer: string): string {
+  const lines = text.trimEnd().split('\n')
+  const at = lines.findIndex(l => /^## log\b/i.test(l))
+  if (at < 0) return `${[...lines, '', '## Log', pointer].join('\n')}\n`
+  let old = -1
+  for (let i = at + 1; i < lines.length && !lines[i]?.startsWith('## '); i += 1) if (lines[i]?.startsWith(ARCHIVE_POINTER)) old = i
+  if (old >= 0) lines[old] = pointer
+  else lines.splice(at + 1, 0, pointer)
+
+  return `${lines.join('\n')}\n`
+}
+
+// The archive index: a header, then one row per chunk, oldest first.
+export const archiveIndexHead = (tranche: string) =>
+  [
+    `# ${tranche}: log archive`,
+    '',
+    'Older workface log entries, moved here verbatim by the workface mod. One row per chunk, oldest first:',
+    'search the summaries for what you need, then open that chunk.',
+    '',
+  ].join('\n')
+
+export const archiveRow = (name: string, first: string, last: string, count: number, summary: string) =>
+  `- [${name}](${name}) · ${first} → ${last} · ${count} entr${count === 1 ? 'y' : 'ies'} · ${summary}`
+
+export const archiveRows = (index: string) => index.split('\n').filter(l => l.startsWith('- [')).length
+
+// Adds a row at the end of the index, a blank line apart from its header.
+export const withArchiveRow = (index: string, row: string) =>
+  `${index.trimEnd()}\n${archiveRows(index) === 0 ? '\n' : ''}${row}\n`
+
+// The dates a text names, earliest and latest, for naming a chunk moved in from elsewhere.
+export function dateSpan(text: string): [string, string] | undefined {
+  const dates = [...text.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)].map(m => m[0]).sort()
+  const first = dates[0]
+  const last = dates[dates.length - 1]
+
+  return first && last ? [first, last] : undefined
+}
+
 export function markOwner(text: string, owned: readonly string[]): string {
   const mine = new Set(owned)
 

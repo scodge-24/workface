@@ -25,6 +25,9 @@ orchestration runs, first as a skill and now as this mod, and it is kept deliber
 - **The agent keeps its notes.** As work moves it rewrites live state in place and logs each event through the
   mod, which stamps the time. At 80% of the auto-compact threshold the mod asks it, once per compaction, to bring
   the file up to date first.
+- **The log doesn't grow without end.** Past 120 lines or 25 log entries the mod asks the agent, once, to trim:
+  it lifts what is still needed into live state, then `archive` moves all but the last 10 entries verbatim into
+  the tranche's `log/` folder, indexed in `log/README.md` with the agent's summary, so a later agent can find them.
 - **Compaction keeps them.** On every compaction, auto or manual, the mod briefs the summarizer with the exact
   text that will follow the summary, so the summary spends its words on what the notes don't hold; then it
   re-attaches the notes, read fresh at that moment, right after the summary, labelled as automated context rather
@@ -120,6 +123,7 @@ Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.
 | `/workface attach <tranche>` | Joins an existing tranche and shows the agent its workface |
 | `/workface resume` | Shows the attached workface again |
 | `/workface log <entry>` | Appends `- YYYY-MM-DD HH:MM — <entry>` to `## Log`, stamped with the local time |
+| `/workface archive <summary>` | Moves all but the last 10 log entries to `log/<first>_<last>.md` and indexes them in `log/README.md` |
 | `/workface detach` | Stops this session orchestrating it; the files stay |
 | `/workface` | Opens or closes the panel |
 
@@ -143,21 +147,24 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 ## Data and files
 
 Everything stays on your machine: the mod makes no network requests and sends nothing anywhere. It changes no
-settings or permissions and never alters or decides a tool call. Run `claude plugin validate` on a checkout to
+settings or permissions and never alters or decides a tool call (it only adds a reminder after an Edit or
+Write that takes the workface over budget). Run `claude plugin validate` on a checkout to
 list every call it makes.
 
 - **Files it writes**, all under `~/.claude/workface/`: a tranche's `workface.md` (the skeleton on
-  `/workface start`, your owner notes, `log` lines) and one session marker per attached session at
+  `/workface start`, your owner notes, `log` lines, the archive pointer), a tranche's `log/` archive (one
+  chunk per `archive`, plus `log/README.md`, the index), and one session marker per attached session at
   `~/.claude/workface/sessions/<session-id>`.
 - **Files it reads**: the workfaces and markers under `~/.claude/workface/`, and `~/.claude/sessions/` to show
   in `Browse` which sessions are running. It reads one environment variable, `HOME`, only to find `~/.claude`,
   and reads no credentials, tokens or keys.
 - **Programs it runs**, each with fixed arguments: `date '+%Y-%m-%d %H:%M'` for the local time on log lines and
   owner notes; `git -C <repo> log -n 50 --format=%ct` for the commits-since count, in the session's repo and the
-  repos a workface names; `rm -f <marker>` to delete this session's marker on `/workface detach`.
+  repos a workface names; `rm -f <marker>` to delete this session's marker on `/workface detach`, and
+  `rm -f <tranche>/log.md` once `archive` has copied a hand-kept `log.md` into the archive.
 - **What it adds to the conversation**: the workface right after each compaction summary and at startup or
   resume, labelled as automated context; a brief to the summarizer at compaction; one reminder to update the
-  workface at 80% of the auto-compact threshold; and a line you asked about with `?`, added once to your next
+  workface at 80% of the auto-compact threshold; one reminder to trim each time the workface goes over budget; and a line you asked about with `?`, added once to your next
   prompt. It reads your prompts only to attach that ask, and watches the agent's Edit, Write and Bash calls only
   to redraw the panel after them.
 - **What it keeps in its plugin store**: the lines you omitted, the lines you wrote, and whether the panel

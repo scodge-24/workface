@@ -15,6 +15,8 @@ declare module 'claude-code' {
       behind: number
       // Whether this compaction cycle's flush reminder has gone out.
       nudged: boolean
+      // Whether the trim reminder went out since the workface last went over budget.
+      trimWarned: boolean
       // Omission keys by workface path: a section heading or a line's text.
       omitted: Record<string, string[]>
     }

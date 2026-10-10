@@ -26,6 +26,9 @@ paths:
 - `prompt.context` blocks are served from cache after a mid-turn compaction, even after
   `$.ui.invalidate('prompt.context')`. Put post-compaction context in the `session.compact` result's
   `messages`.
+- A plugin's own `$.session.compact` skips that plugin's `session.compact` hook, so the workface brief and
+  re-attach never run. To compact from the mod, use `$.command.run({ command: 'compact', args: '' })`: the
+  engine's own compaction, as a typed `/compact`. (The test kit also leaves `trigger` unset on a plugin's call.)
 - `Select` is missing from some surfaces (mobile). Use Buttons for controls a pane must draw everywhere.
 - In `claude plugin test`, nothing answers an engine noun unless the test does: every `$.fs`,
   `$.session.id`, `$.store` or `$.clock` call the plugin makes needs an `on(...)` answer or `mock.*`.

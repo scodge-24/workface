@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, PluginOptions, Register } from 'claude-code'
+import type { EngineInterface, PluginOptions, Register, Timer } from 'claude-code'
 
 import type { Tone } from './workface'
 import {
@@ -33,6 +33,9 @@ const COMMAND = 'workface'
 const TOOL = 'mcp__workface__workface'
 const TRANCHE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/
 const PANE = 'workface'
+// Cache-saver: just short of the 1-hour prompt-cache TTL, counted from the main thread's last model request.
+const SAVER_IDLE_MS = 58 * 60_000
+const CACHE_TTL_MS = 60 * 60_000
 
 const view = atom({ plugin: 'workface', key: 'view' } as const, 'workface')
 const expanded = atom({ plugin: 'workface', key: 'expanded' } as const, [])
@@ -46,11 +49,18 @@ const behind = atom({ plugin: 'workface', key: 'behind' } as const, 0)
 const nudged = atom({ plugin: 'workface', key: 'nudged' } as const, false)
 // Whether the trim reminder went out since the workface last went over budget; re-arms once it is back under.
 const trimWarned = atom({ plugin: 'workface', key: 'trimWarned' } as const, false)
+// When the main thread last sent a model request; null once a compaction or a lapsed cache leaves nothing to save.
+const lastRequest = atom({ plugin: 'workface', key: 'lastRequest' } as const, null)
+// Whether cache-saver's flush prompt went out since the last message that was not its own.
+const saverFlushed = atom({ plugin: 'workface', key: 'saverFlushed' } as const, false)
 
 type Workface = { path: string; text: string; mtimeMs: number }
 
 // The `status_line` option; off unless the user turns it on. register sets it on every load.
 let showStatus = false
+// The `cache_saver` option, the default `/workface cache-saver` overrides in the store; and the pending idle timer.
+let saverDefault = false
+let saverTimer: Timer | undefined
 
 // The session marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
 async function attached($: EngineInterface): Promise<Workface | undefined> {
@@ -200,7 +210,7 @@ const skeleton = (tranche: string, now: string) =>
   ].join('\n')
 
 const USAGE =
-  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | log <entry> | archive <summary> | detach. ' +
+  'Usage: /workface [panel] | start <tranche> | attach <tranche> | resume | log <entry> | archive <summary> | detach | cache-saver. ' +
   'Workfaces live at ~/.claude/workface/<tranche>/workface.md.'
 
 type Outcome = { text: string; isError?: true }
@@ -421,7 +431,10 @@ async function refresh($: EngineInterface) {
   const lines = wf.text.trimEnd().split('\n').length
   const over = lines > BUDGET_LINES ? '!' : ''
   const stale = commits > 0 ? ` · ${commits} commit${commits === 1 ? '' : 's'} since` : ''
-  $.ui.status(`${tranche(wf.path)} · ${lines}${over}/${BUDGET_LINES}L · ${age((await $.clock.now()) - wf.mtimeMs)} old${stale}`)
+  const now = await $.clock.now()
+  const due = await saverDue($)
+  const saver = due ? ` · ${due.step} in ${age(Math.max(0, due.at - now))}` : ''
+  $.ui.status(`${tranche(wf.path)} · ${lines}${over}/${BUDGET_LINES}L · ${age(now - wf.mtimeMs)} old${stale}${saver}`)
 }
 
 type TrancheRow = { name: string; path: string; lines: number; mtimeMs: number; running: string[]; idle: number }
@@ -468,15 +481,87 @@ async function compactThreshold($: EngineInterface) {
   return context.breakdown?.autoCompactThreshold
 }
 
+const saverFlush = (path: string) =>
+  '[workface mod: cache-saver, an automated prompt, not a message from the owner.] ' +
+  `The session has been idle ${SAVER_IDLE_MS / 60_000} minutes and its prompt cache lapses at ${CACHE_TTL_MS / 60_000}. ` +
+  `Bring the workface at ${path} up to date: rewrite live state in place, one \`log\` action per state change since its ` +
+  'last write, unverified items marked. Do nothing else: no other work and no questions; end the turn once it is written. ' +
+  `If the session stays idle another ${SAVER_IDLE_MS / 60_000} minutes, the mod compacts it and re-attaches the workface.`
+
+async function saverOn($: EngineInterface) {
+  const stored = await $.store.get('cacheSaver')
+
+  return typeof stored === 'boolean' ? stored : saverDefault
+}
+
+// When the pending timer fires and what it does then; undefined with no timer pending.
+async function saverDue($: EngineInterface) {
+  const at = await read($, lastRequest)
+  if (!saverTimer || at === null) return undefined
+
+  return { at: at + SAVER_IDLE_MS, step: (await read($, saverFlushed)) ? 'compact' : 'flush' }
+}
+
+// Starts the idle timer from the last request; with cache-saver off or nothing to save, only clears it.
+async function armSaver($: EngineInterface) {
+  saverTimer?.cancel()
+  saverTimer = undefined
+  const at = await read($, lastRequest)
+  if (at === null || !(await saverOn($))) return
+  saverTimer = $.clock.after(Math.max(0, at + SAVER_IDLE_MS - (await $.clock.now())), () => void saverFire($))
+}
+
+// The first idle period asks the agent to flush the workface, which keeps the cache warm; the second compacts.
+async function saverFire($: EngineInterface) {
+  saverTimer = undefined
+  const at = await read($, lastRequest)
+  const wf = await attached($)
+  if (at === null || !wf || !(await saverOn($))) return
+  // Woken late (a suspended machine, a stalled process): the cache has lapsed, and a request now rewrites it whole.
+  if ((await $.clock.now()) - at >= CACHE_TTL_MS) return update($, lastRequest, () => null)
+  if (!(await read($, saverFlushed))) {
+    await update($, saverFlushed, () => true)
+    await $.prompt.submit({ text: saverFlush(wf.path) })
+
+    return
+  }
+  await update($, lastRequest, () => null)
+  // /compact as the person would type it: a plugin's own $.session.compact skips this plugin's session.compact hook,
+  // which briefs the summarizer and re-attaches the workface.
+  try {
+    await $.command.run({ command: 'compact', args: '' })
+  } catch (err) {
+    $.ui.log(`cache-saver: compaction refused: ${err instanceof Error ? err.message : String(err)}`, { to: 'debug' })
+  }
+  await refresh($)
+}
+
+async function toggleSaver($: EngineInterface) {
+  const isOn = !(await saverOn($))
+  await $.store.set('cacheSaver', isOn)
+  await armSaver($)
+  await refresh($)
+  if (!isOn) return 'Cache-saver off.'
+  const due = await saverDue($)
+  const next = due ? ` Next: ${due.step} in ${age(Math.max(0, due.at - (await $.clock.now())))}.` : ''
+
+  return (
+    `Cache-saver on. After ${SAVER_IDLE_MS / 60_000} idle minutes the agent is asked to update the workface, which keeps ` +
+    `the prompt cache warm; after ${SAVER_IDLE_MS / 60_000} more the session is compacted. Any new message starts it over. ` +
+    `It acts only while a workface is attached, and assumes the 1-hour cache TTL.${next}`
+  )
+}
+
 export const register: Register = (on, options) => {
   let threshold: number | undefined
   const palette = paletteFrom(options)
   showStatus = options.status_line === true
+  saverDefault = options.cache_saver === true
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: COMMAND,
-      description: 'Workface: open the panel, or start <tranche> | attach <tranche> | resume | log <entry> | detach',
+      description: 'Workface: open the panel, or start <tranche> | attach <tranche> | resume | log <entry> | detach | cache-saver',
     })
     await $.tool.register({
       name: 'workface',
@@ -504,10 +589,31 @@ export const register: Register = (on, options) => {
     await update($, omitted, () => stored ?? {})
     // As the diff panel does: it reopens unasked only for someone who opened it and did not close it since.
     if ((await attached($)) && (await $.store.get('autoOpen')) === true) void $.ui.open({ id: PANE, title: 'Workface' })
+    // A reload drops the module's timers; the last request is session state, so the idle timer picks up where it was.
+    await armSaver($)
     await refresh($)
     $.clock.every(60_000, () => void refresh($))
 
     return next(e)
+  })
+
+  // Cache-saver counts idle time from each main-thread request: the prompt cache's TTL starts when a request is sent.
+  on('turn.step', async function* ($, e, next) {
+    if (e.agentId === undefined) {
+      saverTimer?.cancel()
+      saverTimer = undefined
+      const now = await $.clock.now()
+      await update($, lastRequest, () => now)
+    }
+
+    return yield* next(e)
+  })
+
+  on('turn.complete', async ($, e, next) => {
+    const done = await next(e)
+    if (e.agentId === undefined) await armSaver($)
+
+    return done
   })
 
   // The agent rewrites the workface with these tools; redraw the panel (and the status line, when on) after each.
@@ -546,6 +652,10 @@ export const register: Register = (on, options) => {
     if (e.trigger === 'precompute' || done.skip !== undefined) return done
     await update($, nudged, () => false)
     threshold = undefined
+    // The context is small now: nothing for cache-saver to save until the next request.
+    saverTimer?.cancel()
+    saverTimer = undefined
+    await update($, lastRequest, () => null)
     const [summary, ...kept] = done.messages
     if (!summary) return done
     // Read again: the file may have changed while the summary was written, or since a precompute.
@@ -584,6 +694,7 @@ export const register: Register = (on, options) => {
 
   on('command.run', { command: COMMAND }, async ($, e) => {
     const [verb = '', ...rest] = e.args.trim().split(/\s+/)
+    if (verb === 'cache-saver') return { text: await toggleSaver($) }
     if (verb !== '' && verb !== 'panel') return { text: (await act($, verb, rest.join(' '))).text }
     if ((await $.ui.panes()).some(pane => pane.id === PANE)) {
       await closePanel($)
@@ -597,8 +708,11 @@ export const register: Register = (on, options) => {
     return { text: 'Workface panel opened.' }
   })
 
-  // An `ask` from the panel rides the next prompt as context, then clears.
+  // Any message but cache-saver's own flush prompt starts its idle cycle over; an `ask` from the panel rides the next
+  // prompt as context, then clears.
   on('prompt.submit', async ($, e, next) => {
+    if (e.origin.kind === 'plugin' && e.origin.name === 'workface') return next(e)
+    await update($, saverFlushed, () => false)
     const pending = await read($, asked)
     if (pending === null) return next(e)
     await update($, asked, () => null)

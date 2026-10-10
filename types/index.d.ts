@@ -19,6 +19,10 @@ declare module 'claude-code' {
       trimWarned: boolean
       // Omission keys by workface path: a section heading or a line's text.
       omitted: Record<string, string[]>
+      // Cache-saver: when the main thread last sent a model request (ms), null with nothing to save.
+      lastRequest: number | null
+      // Whether cache-saver's flush prompt went out since the last message that was not its own.
+      saverFlushed: boolean
     }
   }
 }

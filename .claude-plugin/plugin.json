@@ -1,7 +1,7 @@
 {
   "name": "workface",
   "displayName": "Workface",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Keeps a long-running agent's working notes through every compaction: briefs the summarizer, re-attaches the notes after the summary, and shows them in a panel you can steer.",
   "author": {
     "name": "Scott Hodge"
@@ -21,6 +21,12 @@
   "privacyPolicyUrl": "https://github.com/scodge-24/workface#data-and-files",
   "types": "./types/index.d.ts",
   "userConfig": {
+    "cache_saver": {
+      "type": "boolean",
+      "title": "Cache-saver",
+      "description": "For the 1-hour prompt cache: after 58 idle minutes the agent is asked to update the workface, which keeps the cache warm; after 58 more the session is compacted, so an idle session never re-caches its whole context. /workface cache-saver toggles it.",
+      "default": false
+    },
     "status_line": {
       "type": "boolean",
       "title": "Status line entry",

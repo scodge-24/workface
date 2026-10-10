@@ -35,6 +35,11 @@ orchestration runs, first as a skill and now as this mod, and it is kept deliber
 - **You choose what survives.** The panel shows the notes as the agent writes them and exactly what the summarizer
   and the agent will receive. Omit a line, add an owner note or ask about one, and the next re-attach carries your
   version.
+- **An idle session doesn't re-cache its whole context (optional).** With cache-saver on, 58 minutes after the
+  session's last model request (just inside the 1-hour prompt cache) the mod asks the agent to bring the
+  workface up to date; that turn reads the cache, which keeps it warm. If the session stays idle another 58
+  minutes the mod runs `/compact`, so when you come back the cache is rebuilt over the small compacted context,
+  not the whole conversation. Any new message starts the cycle over; after the compaction it waits for one.
 
 ## Watch and steer it live
 
@@ -125,6 +130,7 @@ Repo(s): `<path>`. Brief: `<path>` (§ index below), or none.
 | `/workface log <entry>` | Appends `- YYYY-MM-DD HH:MM — <entry>` to `## Log`, stamped with the local time |
 | `/workface archive <summary>` | Moves all but the last 10 log entries to `log/<first>_<last>.md` and indexes them in `log/README.md` |
 | `/workface detach` | Stops this session orchestrating it; the files stay |
+| `/workface cache-saver` | Turns cache-saver on or off, overriding the `cache_saver` option, in every session |
 | `/workface` | Opens or closes the panel |
 
 The agent has the same verbs as the tool `mcp__workface__workface`, so it can start or join a tranche when you
@@ -142,7 +148,12 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 "pluginConfigs": { "workface@workface": { "options": { "color_sha": "magenta" } } }
 ```
 
-`status_line` (off by default) adds the tranche, line budget, age and commits-since to Claude Code's status line.
+`status_line` (off by default) adds the tranche, line budget, age and commits-since to Claude Code's status line,
+and with cache-saver on, its next step (`flush in 41m`, `compact in 12m`).
+
+`cache_saver` (off by default) turns cache-saver on; `/workface cache-saver` toggles it from a session, and that
+choice stands over the option until toggled again. It assumes the 1-hour prompt-cache TTL, and acts only while a
+workface is attached. If the timer fires after the cache has already lapsed (a suspended machine), it sends nothing.
 
 ## Data and files
 
@@ -167,8 +178,11 @@ list every call it makes.
   workface at 80% of the auto-compact threshold; one reminder to trim each time the workface goes over budget; and a line you asked about with `?`, added once to your next
   prompt. It reads your prompts only to attach that ask, and watches the agent's Edit, Write and Bash calls only
   to redraw the panel after them.
-- **What it keeps in its plugin store**: the lines you omitted, the lines you wrote, and whether the panel
-  opens on its own.
+- **Turns it starts on its own**, only with cache-saver on: one prompt asking the agent to update the workface
+  after 58 idle minutes, and one `/compact` after 58 more. Each is a model request on your account. It notes the
+  time of each of the main session's model requests to count idle time from, and nothing else about them.
+- **What it keeps in its plugin store**: the lines you omitted, the lines you wrote, whether the panel
+  opens on its own, and whether cache-saver is on.
 
 A workface is plain Markdown, and each session marker is one line holding the workface's path, so other tools
 and agents can read and keep the same tranche.

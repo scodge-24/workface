@@ -549,11 +549,12 @@ export const register: Register = (on, options) => {
 
   // Resume and attach get the workface from here; the legacy hook's pointer is dropped so there is one source.
   on('classic.SessionStart', async ($, e, next) => {
-    const out = await next(e)
     // After a compaction the workface is already in the messages, right after the summary.
-    if (e.source === 'compact') return out
-    // Only a new session id: a resumed one keeps its marker, or its detach.
+    if (e.source === 'compact') return next(e)
+    // Only a new session id: a resumed one keeps its marker, or its detach. Attach before next(), so the handlers
+    // below (recall's deep-memory notice) already find the marker.
     const from = e.source === 'resume' ? undefined : await autoAttach($, e.cwd)
+    const out = await next(e)
     const wf = await attached($)
     if (!wf) return out
     const when = from ? `at session ${e.source}, by auto_attach for ${from}` : `at session ${e.source}`

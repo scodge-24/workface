@@ -10,6 +10,9 @@ const OPS = `${ROOT}/ops/workface.md`
 const TEXT = '# ops — workface\n## Live state\n- ufw: on\n'
 const OPTIONS = { options: { auto_attach: '~/Work=ops; /srv/data=data' } }
 
+// What the marker held when the chain below the mod ran, as another plugin's SessionStart (recall's notice) sees it.
+let markerAtNext: string | undefined
+
 // A filesystem in memory; the session runs in /home/t/Work/tries unless a test says otherwise.
 function world(on: On, files: Record<string, string>) {
   mock.env(on, { HOME })
@@ -25,7 +28,11 @@ function world(on: On, files: Record<string, string>) {
     return { value: undefined }
   })
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: 0, isLink: false } }))
-  on('classic.SessionStart', () => ({}))
+  on('classic.SessionStart', () => {
+    markerAtNext = files[MARKER]
+
+    return {}
+  })
 
   return files
 }
@@ -43,6 +50,7 @@ test('a new session under a configured directory attaches and is handed the work
   const files = world(on, { [OPS]: TEXT })
   const started = await $.classic.SessionStart({ source: 'startup', cwd: '/home/t/Work/tries' })
   expect(files[MARKER]).toBe(`${OPS}\n`)
+  expect(markerAtNext).toBe(`${OPS}\n`)
   expect(started.additionalContext?.[0]).toEqual(
     expect.stringMatching(/attached by the workface mod at session startup, by auto_attach for \/home\/t\/Work\.[\s\S]*ufw: on/),
   )

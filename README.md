@@ -144,6 +144,16 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 
 `status_line` (off by default) adds the tranche, line budget, age and commits-since to Claude Code's status line.
 
+`auto_attach` (empty by default) attaches every new session started under a directory to a tranche, as
+`/workface attach` would: `<dir>=<tranche>` entries separated by `;`, `~` for your home, the deepest matching
+directory winning. A session that already has a marker, a resumed one and one whose tranche has no workface yet
+are left alone, so run `/workface start <tranche>` once first. For a long-running thread of general work in one
+directory, with project tranches kept granular elsewhere:
+
+```json
+"pluginConfigs": { "workface@workface": { "options": { "auto_attach": "~/Work=ops" } } }
+```
+
 ## Data and files
 
 Everything stays on your machine: the mod makes no network requests and sends nothing anywhere. It changes no
@@ -153,7 +163,7 @@ list every call it makes.
 
 - **Files it writes**, all under `~/.claude/workface/`: a tranche's `workface.md` (the skeleton on
   `/workface start`, your owner notes, `log` lines, the archive pointer), a tranche's `log/` archive (one
-  chunk per `archive`, plus `log/README.md`, the index), and one session marker per attached session at
+  chunk per `archive`, plus `log/README.md`, the index), and one session marker per attached session (by `attach`, or at startup under an `auto_attach` directory) at
   `~/.claude/workface/sessions/<session-id>`.
 - **Files it reads**: the workfaces and markers under `~/.claude/workface/`, and `~/.claude/sessions/` to show
   in `Browse` which sessions are running. It reads one environment variable, `HOME`, only to find `~/.claude`,

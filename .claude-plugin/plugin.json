@@ -1,7 +1,7 @@
 {
   "name": "workface",
   "displayName": "Workface",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Keeps a long-running agent's working notes through every compaction: briefs the summarizer, re-attaches the notes after the summary, and shows them in a panel you can steer.",
   "author": {
     "name": "Scott Hodge"
@@ -26,6 +26,12 @@
       "title": "Status line entry",
       "description": "Show the attached tranche, its line budget, its age and commits since it was written in the status line.",
       "default": false
+    },
+    "auto_attach": {
+      "type": "string",
+      "title": "Auto-attach directories",
+      "description": "Start every new session under a directory attached to a tranche: <dir>=<tranche> entries separated by ';', ~ for your home (e.g. ~/Work=ops). The deepest matching directory wins; nothing happens until that tranche's workface exists, and a resumed session keeps what it had.",
+      "default": ""
     },
     "color_accent": {
       "type": "string",

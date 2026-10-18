@@ -244,7 +244,7 @@ async function act($: EngineInterface, verb: string, arg: string, keep = KEEP_EN
     if (!wf) return { text: `No workface is attached. ${USAGE}`, isError: true }
     // The time is the mod's to stamp; drop one the caller wrote anyway.
     const entry = arg.replace(/\s+/g, ' ').trim().replace(/^-?\s*\d{4}-\d{2}-\d{2} \d{2}:\d{2}\s*—\s*/, '')
-    if (entry === '') return { text: 'Give the log entry: <what, with shas/ids> → <consequence>.', isError: true }
+    if (entry === '') return { text: 'Give the log entry in `entry`: <what, with shas/ids> → <consequence>.', isError: true }
     const line = `- ${await localNow($)} — ${entry}`
     const text = appendLog(await $.fs.read(wf.path), line)
     await $.fs.write(wf.path, text)

@@ -210,9 +210,12 @@ const USAGE =
 
 type Outcome = { text: string; isError?: true }
 
-// The home directory with forward slashes: HOME, or USERPROFILE on Windows, which sets no HOME.
+// The home directory with forward slashes: HOME, or USERPROFILE on Windows, which sets no HOME. USERPROFILE is
+// Windows' own, so its backslashes are always separators.
 async function homeDir($: EngineInterface) {
-  return slashed((await $.env.get('HOME')) || (await $.env.get('USERPROFILE')) || '')
+  const home = await $.env.get('HOME')
+
+  return home ? slashed(home) : ((await $.env.get('USERPROFILE')) ?? '').replace(/\\/g, '/')
 }
 
 // The local time as `YYYY-MM-DD HH:MM`; from the clock where there is no `date` command (Windows).

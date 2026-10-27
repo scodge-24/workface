@@ -211,11 +211,12 @@ export function namedPaths(text: string, home: string): string[] {
   return [...new Set(found)]
 }
 
-// A path with forward slashes, which Windows also accepts: `C:\Users\x` → `C:/Users/x`.
-export const slashed = (path: string) => path.replace(/\\/g, '/')
+// A Windows path (a drive or a network share) with forward slashes, which Windows also accepts:
+// `C:\Users\x` → `C:/Users/x`. Any other path is POSIX, where a backslash is part of a name, and is left as it is.
+export const slashed = (path: string) => (/^([A-Za-z]:|\\\\)/.test(path) ? path.replace(/\\/g, '/') : path)
 
-// Windows paths (`C:/…`) compare without case.
-const pathKey = (path: string) => (/^[A-Za-z]:\//.test(path) ? path.toLowerCase() : path)
+// Windows paths (`C:/…`, `//server/share/…`) compare without case.
+const pathKey = (path: string) => (/^([A-Za-z]:\/|\/\/)/.test(path) ? path.toLowerCase() : path)
 
 // The `auto_attach` option: `<dir>=<tranche>` entries split by `;` or newlines, `~` for home. The tranche of the
 // deepest directory that holds `cwd`, with that directory; undefined where none does.
@@ -226,7 +227,7 @@ export function autoAttachFor(spec: string, home: string, cwd: string): { dir: s
     .map(entry => entry.split('='))
     .filter(parts => parts.length === 2)
     .map(([dir = '', tranche = '']) => ({
-      dir: slashed(dir.trim()).replace(/^~(?=\/|$)/, slashed(home)).replace(/\/+$/, ''),
+      dir: slashed(dir.trim().replace(/^~(?=[\\/]|$)/, home)).replace(/\/+$/, ''),
       tranche: tranche.trim(),
     }))
     .filter(r => /^([A-Za-z]:)?\//.test(r.dir) && r.tranche !== '')

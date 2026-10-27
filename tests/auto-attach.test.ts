@@ -52,6 +52,13 @@ test('Windows paths match with either slash and in any case', () => {
   expect(autoAttachFor('~\\Work=ops', home, 'c:\\users\\t\\work')).toEqual({ dir: 'C:/Users/t/Work', tranche: 'ops' })
   expect(autoAttachFor('D:\\data\\=data', home, 'D:/data/x')).toEqual({ dir: 'D:/data', tranche: 'data' })
   expect(autoAttachFor('~/Work=ops', home, 'C:\\Users\\t\\Workshop')).toBeUndefined()
+  expect(autoAttachFor('\\\\Server\\Share\\Work=ops', home, '\\\\server\\share\\work\\x')).toEqual({ dir: '//Server/Share/Work', tranche: 'ops' })
+})
+
+test('a backslash in a POSIX path is part of a name, not a separator', () => {
+  expect(autoAttachFor('/srv/team=ops', HOME, '/srv/team\\other')).toBeUndefined()
+  expect(autoAttachFor('~\\Work=ops', HOME, '/home/t/Work')).toBeUndefined()
+  expect(autoAttachFor('/srv/a\\b=ab', HOME, '/srv/a\\b/x')).toEqual({ dir: '/srv/a\\b', tranche: 'ab' })
 })
 
 test('a new session under a configured directory attaches and is handed the workface', OPTIONS, async ($, on) => {

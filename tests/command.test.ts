@@ -10,11 +10,12 @@ const MARKER = `${ROOT}/sessions/sid-1`
 const run = ($: Engine, args: string) =>
   $.command.run({ command: 'workface', args, origin: { kind: 'composer' }, presentation: { isFullscreen: true, columns: 160 } })
 
-// A filesystem in memory, and the two host commands the mod runs: date and rm.
-function world(on: On, files: Record<string, string>) {
-  mock.env(on, { HOME })
+// A filesystem in memory, and the two host commands the mod runs: date and rm. Windows has neither, nor HOME; its
+// USERPROFILE has no drive here, as the engine under test resolves `C:/…` against the working directory.
+function world(on: On, files: Record<string, string>, windows = false) {
+  mock.env(on, windows ? { USERPROFILE: '\\Users\\t' } : { HOME })
   mock.store(on)
-  mock.clock(on)
+  mock.clock(on, { now: Date.UTC(2026, 9, 3, 12) })
   on('session.id', () => ({ value: 'sid-1' }))
   on('session.root', () => ({ value: '/home/t/repo' }))
   on('fs.exists', (_$, e) => ({ value: e.path in files }))
@@ -26,6 +27,7 @@ function world(on: On, files: Record<string, string>) {
   })
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: 0, isLink: false } }))
   on('process.run', (_$, e) => {
+    if (windows) return { deny: `spawn ${e.argv[0]} ENOENT` }
     if (e.argv[0] === 'rm') delete files[e.argv[2] ?? '']
 
     return { value: { exitCode: 0, stdout: e.argv[0] === 'date' ? '2026-10-03 12:00\n' : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
@@ -80,4 +82,19 @@ test('log stamps the time itself, lands at the end of ## Log, and drops a time t
     '# old\n\n## Log\n- 2026-10-03 11:00 — started\n- 2026-10-03 12:00 — a1b2c3d pushed → CI running\n- 2026-10-03 12:00 — gate 3 PASS\n\n## Later\n- x\n',
   )
   expect((await run($, 'log')).text).toEqual(expect.stringMatching('Give the log entry'))
+})
+
+test('on Windows the workface lives under USERPROFILE, the clock stamps it and detach empties the marker', async ($, on) => {
+  const root = '/Users/t/.claude/workface'
+  const marker = `${root}/sessions/sid-1`
+  const files = world(on, {}, true)
+  on('tool.call', () => ({ result: 'unanswered' }))
+  await run($, 'start demo')
+  expect(files[marker]).toBe(`${root}/demo/workface.md\n`)
+  expect(files[`${root}/demo/workface.md`]).toEqual(expect.stringMatching(/- 2026-10-0[234] \d\d:\d\d — workface started/))
+  const logged = await $.tool.call({ tool: 'mcp__workface__workface', action: 'log', entry: 'a1b2c3d pushed' })
+  expect(String(logged.result)).toEqual(expect.stringMatching(/Logged .* \d\d:\d\d — a1b2c3d pushed/))
+  expect((await run($, 'detach')).text).toEqual(expect.stringMatching('Detached from'))
+  expect(files[marker]).toBe('')
+  expect((await run($, 'log after')).text).toEqual(expect.stringMatching('No workface is attached'))
 })

@@ -146,7 +146,7 @@ hex colour (`#ff79c6`). Unset, they follow your theme. To match a statusline tha
 
 `auto_attach` (empty by default) attaches every new session started under a directory to a tranche, as
 `/workface attach` would: `<dir>=<tranche>` entries separated by `;`, `~` for your home, the deepest matching
-directory winning. A session that already has a marker, a resumed one and one whose tranche has no workface yet
+directory winning. On Windows either slash works and paths match in any case (`~\Work=ops`, `D:\data=data`). A session that already has a marker, a resumed one and one whose tranche has no workface yet
 are left alone, so run `/workface start <tranche>` once first. For a long-running thread of general work in one
 directory, with project tranches kept granular elsewhere:
 
@@ -166,12 +166,13 @@ list every call it makes.
   chunk per `archive`, plus `log/README.md`, the index), and one session marker per attached session (by `attach`, or at startup under an `auto_attach` directory) at
   `~/.claude/workface/sessions/<session-id>`.
 - **Files it reads**: the workfaces and markers under `~/.claude/workface/`, and `~/.claude/sessions/` to show
-  in `Browse` which sessions are running. It reads one environment variable, `HOME`, only to find `~/.claude`,
-  and reads no credentials, tokens or keys.
+  in `Browse` which sessions are running. It reads the environment variable `HOME` (or
+  `USERPROFILE` on Windows, which sets no `HOME`) only to find `~/.claude`, and reads no credentials, tokens or keys.
 - **Programs it runs**, each with fixed arguments: `date '+%Y-%m-%d %H:%M'` for the local time on log lines and
-  owner notes; `git -C <repo> log -n 50 --format=%ct` for the commits-since count, in the session's repo and the
+  owner notes (where there is no `date`, as on Windows, it reads the clock instead); `git -C <repo> log -n 50 --format=%ct` for the commits-since count, in the session's repo and the
   repos a workface names; `rm -f <marker>` to delete this session's marker on `/workface detach`, and
-  `rm -f <tranche>/log.md` once `archive` has copied a hand-kept `log.md` into the archive.
+  `rm -f <tranche>/log.md` once `archive` has copied a hand-kept `log.md` into the archive (where there is no `rm`,
+  it empties the file instead).
 - **What it adds to the conversation**: the workface right after each compaction summary and at startup or
   resume, labelled as automated context; a brief to the summarizer at compaction; one reminder to update the
   workface at 80% of the auto-compact threshold; one reminder to trim each time the workface goes over budget; and a line you asked about with `?`, added once to your next

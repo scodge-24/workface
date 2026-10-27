@@ -17,6 +17,7 @@ import {
   markOwner,
   namedPaths,
   parse,
+  slashed,
   spans,
   splitLog,
   withArchivePointer,
@@ -58,7 +59,7 @@ let autoAttachSpec = ''
 
 // The session marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
 async function attached($: EngineInterface): Promise<Workface | undefined> {
-  const home = await $.env.get('HOME')
+  const home = await homeDir($)
   const marker = `${home}/.claude/workface/sessions/${await $.session.id()}`
   if (!(await $.fs.exists(marker))) return undefined
   const path = (await $.fs.read(marker)).trim()
@@ -209,16 +210,32 @@ const USAGE =
 
 type Outcome = { text: string; isError?: true }
 
-async function localNow($: EngineInterface) {
-  const { stdout } = await $.process.run(['date', '+%Y-%m-%d %H:%M'])
+// The home directory with forward slashes: HOME, or USERPROFILE on Windows, which sets no HOME. USERPROFILE is
+// Windows' own, so its backslashes are always separators.
+async function homeDir($: EngineInterface) {
+  const home = await $.env.get('HOME')
 
-  return stdout.trim()
+  return home ? slashed(home) : ((await $.env.get('USERPROFILE')) ?? '').replace(/\\/g, '/')
+}
+
+// The local time as `YYYY-MM-DD HH:MM`; from the clock where there is no `date` command (Windows).
+async function localNow($: EngineInterface) {
+  try {
+    const { stdout } = await $.process.run(['date', '+%Y-%m-%d %H:%M'])
+
+    return stdout.trim()
+  } catch {
+    const d = new Date(await $.clock.now())
+    const two = (n: number) => String(n).padStart(2, '0')
+
+    return `${d.getFullYear()}-${two(d.getMonth() + 1)}-${two(d.getDate())} ${two(d.getHours())}:${two(d.getMinutes())}`
+  }
 }
 
 // The verbs the /workface command and the model's tool share.
 // `arg` is the tranche for start and attach, the entry for log, the summary for archive.
 async function act($: EngineInterface, verb: string, arg: string, keep = KEEP_ENTRIES): Promise<Outcome> {
-  const root = `${await $.env.get('HOME')}/.claude/workface`
+  const root = `${await homeDir($)}/.claude/workface`
   const marker = `${root}/sessions/${await $.session.id()}`
   if (verb === 'start' || verb === 'attach') {
     const tranche = arg
@@ -261,7 +278,8 @@ async function act($: EngineInterface, verb: string, arg: string, keep = KEEP_EN
   if (verb === 'detach') {
     const wf = await attached($)
     if (!wf) return { text: 'No workface is attached to this session.' }
-    await $.process.run(['rm', '-f', marker])
+    // No rm on Windows: an empty marker reads as detached.
+    await $.process.run(['rm', '-f', marker]).catch(() => $.fs.write(marker, ''))
     await $.ui.close({ id: PANE })
     await refresh($)
 
@@ -299,15 +317,16 @@ async function archive($: EngineInterface, summaryArg: string, keep: number): Pr
   let rows = (await $.fs.exists(index)) ? await $.fs.read(index) : archiveIndexHead(tranche(wf.path))
   const notes: string[] = []
   const legacy = `${folder}/log.md`
-  if (await $.fs.exists(legacy)) {
-    const old = await $.fs.read(legacy)
+  const old = (await $.fs.exists(legacy)) ? await $.fs.read(legacy) : ''
+  if (old.trim() !== '') {
     const span = dateSpan(old)
     const name = await chunkName($, dir, span ? span.join('_') : 'earlier')
     await $.fs.write(`${dir}/${name}`, old)
     const count = old.split('\n').filter(l => l.startsWith('- ')).length
     rows = withArchiveRow(rows, archiveRow(name, span?.[0] ?? '?', span?.[1] ?? '?', count, 'moved in from log.md, kept by hand before the archive; no summary, search it'))
     await $.fs.write(index, rows)
-    await $.process.run(['rm', '-f', legacy])
+    // No rm on Windows: an emptied log.md is skipped next time.
+    await $.process.run(['rm', '-f', legacy]).catch(() => $.fs.write(legacy, ''))
     notes.push(`log.md moved to ${dir}/${name}: fix any workface line that still points at log.md.`)
   }
   const name = await chunkName($, dir, `${split.first}_${split.last}`)
@@ -402,7 +421,7 @@ function age(ms: number): string {
 
 // Commits newer than the workface's last write, across the session's repo and the repos the workface names.
 async function commitsSince($: EngineInterface, wf: Workface): Promise<number> {
-  const home = (await $.env.get('HOME')) ?? ''
+  const home = await homeDir($)
   const repos = [...new Set([await $.session.root(), ...namedPaths(wf.text, home)])]
   let count = 0
   for (const repo of repos.slice(0, 8)) {
@@ -432,7 +451,7 @@ type TrancheRow = { name: string; path: string; lines: number; mtimeMs: number; 
 
 // Every tranche under ~/.claude/workface, with the sessions attached to it; running means its process is alive.
 async function tranches($: EngineInterface): Promise<TrancheRow[]> {
-  const home = (await $.env.get('HOME')) ?? ''
+  const home = await homeDir($)
   const root = `${home}/.claude/workface`
   const names = new Map<string, string>()
   const procs = `${home}/.claude/sessions`
@@ -475,8 +494,8 @@ async function compactThreshold($: EngineInterface) {
 // A new session started under an `auto_attach` directory joins that tranche, as `attach` would, unless it already has
 // a marker or the tranche has no workface yet. Returns where it attached from, for the message.
 async function autoAttach($: EngineInterface, cwd: string): Promise<string | undefined> {
-  const home = await $.env.get('HOME')
-  const rule = autoAttachFor(autoAttachSpec, home ?? '', cwd)
+  const home = await homeDir($)
+  const rule = autoAttachFor(autoAttachSpec, home, cwd)
   if (!rule) return undefined
   const root = `${home}/.claude/workface`
   const marker = `${root}/sessions/${await $.session.id()}`

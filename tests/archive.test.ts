@@ -14,8 +14,8 @@ const entries = (n: number, from = 1) =>
   Array.from({ length: n }, (_, k) => `- 2026-09-${String(from + k).padStart(2, '0')} 10:00 — e${from + k}`)
 const workface = (log: string[]) => ['# demo', '', '## Live state', '- HEAD: abc1234', '', '## Log', ...log, ''].join('\n')
 
-// A filesystem in memory, attached to WF, and the host commands the mod runs: date, rm and git.
-function world(on: On, files: Record<string, string>) {
+// A filesystem in memory, attached to WF, and the host commands the mod runs: date, rm and git (no rm on Windows).
+function world(on: On, files: Record<string, string>, noRm = false) {
   files[MARKER] = `${WF}\n`
   mock.env(on, { HOME })
   mock.store(on)
@@ -31,6 +31,7 @@ function world(on: On, files: Record<string, string>) {
   })
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: 0, isLink: false } }))
   on('process.run', (_$, e) => {
+    if (noRm && e.argv[0] === 'rm') return { deny: 'spawn rm ENOENT' }
     if (e.argv[0] === 'rm') delete files[e.argv[2] ?? '']
 
     return { value: { exitCode: 0, stdout: e.argv[0] === 'date' ? '2026-10-04 12:00\n' : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
@@ -83,6 +84,20 @@ test('a hand-kept log.md moves in as its own chunk, and the agent is told to fix
   expect(rows.length).toBe(2)
   expect(rows[0]).toEqual(expect.stringMatching('moved in from log.md'))
   expect(files[WF]).toEqual(expect.stringMatching('\\(2 chunks of older log entries'))
+})
+
+test('without rm a moved log.md is emptied, and the next archive does not move it in again', async ($, on) => {
+  const legacy = `${ROOT}/demo/log.md`
+  const old = '- 2026-08-20 — old\n- 2026-08-22 — older\n'
+  const files = world(on, { [WF]: workface(entries(12)), [legacy]: old }, true)
+  expect(String((await call($, { action: 'archive', summary: 'early setup', keep: 11 })).result)).toEqual(expect.stringMatching('log.md moved to'))
+  expect(files[legacy]).toBe('')
+  expect(files[`${ROOT}/demo/log/2026-08-20_2026-08-22.md`]).toBe(old)
+  const again = await call($, { action: 'archive', summary: 'more', keep: 10 })
+  expect(String(again.result).includes('log.md moved to')).toBe(false)
+  const rows = (files[`${ROOT}/demo/log/README.md`] ?? '').split('\n').filter(l => l.startsWith('- ['))
+  expect(rows.length).toBe(3)
+  expect(rows.filter(r => r.includes('moved in from log.md')).length).toBe(1)
 })
 
 test('archive refuses without a summary or with nothing older than keep', async ($, on) => {

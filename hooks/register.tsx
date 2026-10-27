@@ -8,6 +8,7 @@ import {
   addOwnerNote,
   appendLog,
   archiveIndexHead,
+  autoAttachFor,
   archiveRow,
   archiveRows,
   dateSpan,
@@ -51,6 +52,9 @@ type Workface = { path: string; text: string; mtimeMs: number }
 
 // The `status_line` option; off unless the user turns it on. register sets it on every load.
 let showStatus = false
+
+// The `auto_attach` option, `<dir>=<tranche>` entries; register sets it on every load.
+let autoAttachSpec = ''
 
 // The session marker: ~/.claude/workface/sessions/<session-id> holds the workface path.
 async function attached($: EngineInterface): Promise<Workface | undefined> {
@@ -468,10 +472,29 @@ async function compactThreshold($: EngineInterface) {
   return context.breakdown?.autoCompactThreshold
 }
 
+// A new session started under an `auto_attach` directory joins that tranche, as `attach` would, unless it already has
+// a marker or the tranche has no workface yet. Returns where it attached from, for the message.
+async function autoAttach($: EngineInterface, cwd: string): Promise<string | undefined> {
+  const home = await $.env.get('HOME')
+  const rule = autoAttachFor(autoAttachSpec, home ?? '', cwd)
+  if (!rule) return undefined
+  const root = `${home}/.claude/workface`
+  const marker = `${root}/sessions/${await $.session.id()}`
+  const path = `${root}/${rule.tranche}/workface.md`
+  if (!TRANCHE.test(rule.tranche) || (await $.fs.exists(marker)) || !(await $.fs.exists(path))) return undefined
+  await $.fs.write(marker, `${path}\n`)
+  const wf = await attached($)
+  if (wf) await snapshot($, wf)
+  await refresh($)
+
+  return rule.dir
+}
+
 export const register: Register = (on, options) => {
   let threshold: number | undefined
   const palette = paletteFrom(options)
   showStatus = options.status_line === true
+  autoAttachSpec = typeof options.auto_attach === 'string' ? options.auto_attach : ''
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
@@ -526,13 +549,17 @@ export const register: Register = (on, options) => {
 
   // Resume and attach get the workface from here; the legacy hook's pointer is dropped so there is one source.
   on('classic.SessionStart', async ($, e, next) => {
-    const out = await next(e)
     // After a compaction the workface is already in the messages, right after the summary.
-    if (e.source === 'compact') return out
+    if (e.source === 'compact') return next(e)
+    // Only a new session id: a resumed one keeps its marker, or its detach. Attach before next(), so the handlers
+    // below (recall's deep-memory notice) already find the marker.
+    const from = e.source === 'resume' ? undefined : await autoAttach($, e.cwd)
+    const out = await next(e)
     const wf = await attached($)
     if (!wf) return out
+    const when = from ? `at session ${e.source}, by auto_attach for ${from}` : `at session ${e.source}`
 
-    return { ...out, additionalContext: [...(out.additionalContext ?? []), await messageFor($, wf, `at session ${e.source}`)] }
+    return { ...out, additionalContext: [...(out.additionalContext ?? []), await messageFor($, wf, when)] }
   })
 
   on('session.compact', async ($, e, next) => {

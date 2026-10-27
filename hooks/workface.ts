@@ -210,3 +210,17 @@ export function namedPaths(text: string, home: string): string[] {
 
   return [...new Set(found)]
 }
+
+// The `auto_attach` option: `<dir>=<tranche>` entries split by `;` or newlines, `~` for home. The tranche of the
+// deepest directory that holds `cwd`, with that directory; undefined where none does.
+export function autoAttachFor(spec: string, home: string, cwd: string): { dir: string; tranche: string } | undefined {
+  const rules = spec
+    .split(/[;\n]/)
+    .map(entry => entry.split('='))
+    .filter(parts => parts.length === 2)
+    .map(([dir = '', tranche = '']) => ({ dir: dir.trim().replace(/^~(?=\/|$)/, home).replace(/\/+$/, ''), tranche: tranche.trim() }))
+    .filter(r => r.dir.startsWith('/') && r.tranche !== '')
+    .filter(r => cwd === r.dir || cwd.startsWith(`${r.dir}/`))
+
+  return rules.sort((a, b) => b.dir.length - a.dir.length)[0]
+}

@@ -46,6 +46,14 @@ test('the deepest configured directory holding the cwd names the tranche', () =>
   expect(autoAttachFor('', HOME, '/home/t/Work')).toBeUndefined()
 })
 
+test('Windows paths match with either slash and in any case', () => {
+  const home = 'C:\\Users\\t'
+  expect(autoAttachFor('~/Work=ops', home, 'C:\\Users\\t\\Work\\x')).toEqual({ dir: 'C:/Users/t/Work', tranche: 'ops' })
+  expect(autoAttachFor('~\\Work=ops', home, 'c:\\users\\t\\work')).toEqual({ dir: 'C:/Users/t/Work', tranche: 'ops' })
+  expect(autoAttachFor('D:\\data\\=data', home, 'D:/data/x')).toEqual({ dir: 'D:/data', tranche: 'data' })
+  expect(autoAttachFor('~/Work=ops', home, 'C:\\Users\\t\\Workshop')).toBeUndefined()
+})
+
 test('a new session under a configured directory attaches and is handed the workface', OPTIONS, async ($, on) => {
   const files = world(on, { [OPS]: TEXT })
   const started = await $.classic.SessionStart({ source: 'startup', cwd: '/home/t/Work/tries' })

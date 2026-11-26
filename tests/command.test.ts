@@ -2,6 +2,8 @@ import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 import { expect, mock, test } from 'claude-code/testing'
 
+const fixturePath = (path: string) => path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')
+
 const HOME = '/home/t'
 const ROOT = '/home/t/.claude/workface'
 const MARKER = `${ROOT}/sessions/sid-1`
@@ -13,15 +15,15 @@ const run = ($: Engine, args: string) =>
 // A filesystem in memory, and the two host commands the mod runs: date and rm. Windows has neither, nor HOME; its
 // USERPROFILE has no drive here, as the engine under test resolves `C:/…` against the working directory.
 function world(on: On, files: Record<string, string>, windows = false) {
-  mock.env(on, windows ? { USERPROFILE: '\\Users\\t' } : { HOME })
+  mock.env(on, windows ? { USERPROFILE: 'C:\\Users\\t' } : { HOME })
   mock.store(on)
   mock.clock(on, { now: Date.UTC(2026, 9, 3, 12) })
   on('session.id', () => ({ value: 'sid-1' }))
   on('session.root', () => ({ value: '/home/t/repo' }))
-  on('fs.exists', (_$, e) => ({ value: e.path in files }))
-  on('fs.read', (_$, e) => ({ value: files[e.path] ?? '' }))
+  on('fs.exists', (_$, e) => ({ value: fixturePath(e.path) in files }))
+  on('fs.read', (_$, e) => ({ value: files[fixturePath(e.path)] ?? '' }))
   on('fs.write', (_$, e) => {
-    files[e.path] = e.text
+    files[fixturePath(e.path)] = e.text
 
     return { value: undefined }
   })
@@ -90,7 +92,7 @@ test('on Windows the workface lives under USERPROFILE, the clock stamps it and d
   const files = world(on, {}, true)
   on('tool.call', () => ({ result: 'unanswered' }))
   await run($, 'start demo')
-  expect(files[marker]).toBe(`${root}/demo/workface.md\n`)
+  expect(files[marker]).toBe(`C:${root}/demo/workface.md\n`)
   expect(files[`${root}/demo/workface.md`]).toEqual(expect.stringMatching(/- 2026-10-0[234] \d\d:\d\d — workface started/))
   const logged = await $.tool.call({ tool: 'mcp__workface__workface', action: 'log', entry: 'a1b2c3d pushed' })
   expect(String(logged.result)).toEqual(expect.stringMatching(/Logged .* \d\d:\d\d — a1b2c3d pushed/))

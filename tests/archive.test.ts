@@ -4,6 +4,8 @@ import { expect, mock, test } from 'claude-code/testing'
 
 import { logEntryCount, splitLog, withArchivePointer } from '../hooks/workface'
 
+const fixturePath = (path: string) => path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')
+
 const HOME = '/home/t'
 const ROOT = '/home/t/.claude/workface'
 const MARKER = `${ROOT}/sessions/sid-1`
@@ -22,10 +24,10 @@ function world(on: On, files: Record<string, string>, noRm = false) {
   mock.clock(on)
   on('session.id', () => ({ value: 'sid-1' }))
   on('session.root', () => ({ value: '/home/t/repo' }))
-  on('fs.exists', (_$, e) => ({ value: e.path in files }))
-  on('fs.read', (_$, e) => ({ value: files[e.path] ?? '' }))
+  on('fs.exists', (_$, e) => ({ value: fixturePath(e.path) in files }))
+  on('fs.read', (_$, e) => ({ value: files[fixturePath(e.path)] ?? '' }))
   on('fs.write', (_$, e) => {
-    files[e.path] = e.text
+    files[fixturePath(e.path)] = e.text
 
     return { value: undefined }
   })

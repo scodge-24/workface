@@ -1,6 +1,8 @@
 import type { On, SessionCompactInput } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
+const fixturePath = (path: string) => path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')
+
 const HOME = '/home/t'
 const WF = '/home/t/.claude/workface/demo/workface.md'
 const MARKER = '/home/t/.claude/workface/sessions/sid-1'
@@ -16,8 +18,8 @@ function world(on: On, files: Record<string, string>) {
   mock.store(on)
   mock.clock(on)
   on('session.id', () => ({ value: 'sid-1' }))
-  on('fs.exists', (_$, e) => ({ value: e.path in files }))
-  on('fs.read', (_$, e) => ({ value: files[e.path] ?? '' }))
+  on('fs.exists', (_$, e) => ({ value: fixturePath(e.path) in files }))
+  on('fs.read', (_$, e) => ({ value: files[fixturePath(e.path)] ?? '' }))
   on('fs.stat', () => ({ value: { kind: 'file', size: TEXT.length, mtimeMs: 0, isLink: false } }))
 }
 

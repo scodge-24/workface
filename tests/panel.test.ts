@@ -2,6 +2,8 @@ import type { On } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 import { expect, mock, test } from 'claude-code/testing'
 
+const fixturePath = (path: string) => path.replace(/\\/g, '/').replace(/^[A-Za-z]:/, '')
+
 const HOME = '/home/t'
 const ROOT = '/home/t/.claude/workface'
 const WF = `${ROOT}/demo/workface.md`
@@ -22,21 +24,21 @@ function world(on: On, files: Record<string, string>, commits: number[] = []) {
   on('session.id', () => ({ value: 'sid-1' }))
   on('session.root', () => ({ value: REPO }))
   const isDir = (path: string) => Object.keys(files).some(f => f.startsWith(`${path}/`))
-  on('fs.exists', (_$, e) => ({ value: e.path in files || isDir(e.path) || e.path === '/proc/4242' }))
-  on('fs.read', (_$, e) => ({ value: files[e.path] ?? '' }))
+  on('fs.exists', (_$, e) => ({ value: fixturePath(e.path) in files || isDir(fixturePath(e.path)) || fixturePath(e.path) === '/proc/4242' }))
+  on('fs.read', (_$, e) => ({ value: files[fixturePath(e.path)] ?? '' }))
   on('fs.write', (_$, e) => {
-    files[e.path] = e.text
+    files[fixturePath(e.path)] = e.text
 
     return { value: undefined }
   })
   on('fs.stat', () => ({ value: { kind: 'file', size: 1, mtimeMs: 1000, isLink: false } }))
   on('fs.list', (_$, e) => {
-    const names = new Set(Object.keys(files).filter(f => f.startsWith(`${e.path}/`)).map(f => f.slice(e.path.length + 1).split('/')[0] ?? ''))
+    const names = new Set(Object.keys(files).filter(f => f.startsWith(`${fixturePath(e.path)}/`)).map(f => f.slice(fixturePath(e.path).length + 1).split('/')[0] ?? ''))
 
     return {
       value: [...names].map(name => ({
         name,
-        kind: isDir(`${e.path}/${name}`) ? ('dir' as const) : ('file' as const),
+        kind: isDir(`${fixturePath(e.path)}/${name}`) ? ('dir' as const) : ('file' as const),
         size: 1,
         mtimeMs: 1000,
         isLink: false,

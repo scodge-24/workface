@@ -1,0 +1,25 @@
+name: Workface PR 6 Windows smoke test
+
+on:
+  push:
+    branches: [verify/workface-pr6-windows-2026-11-26]
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: claude --version
+      - run: claude plugin validate --strict .claude-plugin/plugin.json
+      - run: claude plugin validate --strict .
+      - run: claude plugin test .
